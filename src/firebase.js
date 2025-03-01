@@ -16,14 +16,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Configure auth action URL handler
-auth.config.emulator = {
-  url: '',
-};
-
-// Set custom URL for auth actions (verification emails, password reset, etc.)
-auth.config.authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
-
 // Update action code settings for verification and password reset links
 export const actionCodeSettings = {
   url: APP_URL,
