@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from './contexts/AuthContext';
+import { STATS_ENDPOINTS, createApiHeaders } from './config/apiConfig';
 
 const SavedGames = ({ setCurrentPage }) => {
   const { currentUser } = useAuth();
@@ -187,12 +188,8 @@ const SavedGames = ({ setCurrentPage }) => {
         setLoading(true);
         
         // Fetch saved games from the API
-        const response = await fetch('/api/stats/savedGames', {
-          headers: {
-            'Authorization': `Bearer ${await currentUser.getIdToken()}`,
-            'X-User-Id': currentUser.uid,
-            'X-User-Email': currentUser.email || ''
-          }
+        const response = await fetch(STATS_ENDPOINTS.GET_SAVED_GAMES, {
+          headers: await createApiHeaders(currentUser)
         });
         
         if (!response.ok) {
@@ -384,13 +381,9 @@ const SavedGames = ({ setCurrentPage }) => {
     
     if (window.confirm('Are you sure you want to delete this saved game?')) {
       try {
-        const response = await fetch(`/api/stats/deleteGame/${game.videoId}`, {
+        const response = await fetch(STATS_ENDPOINTS.DELETE_GAME(game.videoId), {
           method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${await currentUser.getIdToken()}`,
-            'X-User-Id': currentUser.uid,
-            'X-User-Email': currentUser.email || ''
-          }
+          headers: await createApiHeaders(currentUser)
         });
         
         if (!response.ok) {

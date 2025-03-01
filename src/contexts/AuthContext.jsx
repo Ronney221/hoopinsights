@@ -10,7 +10,8 @@ import {
   applyActionCode,
   checkActionCode
 } from 'firebase/auth';
-import { auth } from '../firebase';
+import { auth, actionCodeSettings } from '../firebase';
+import { APP_URL, AUTH_ENDPOINTS } from '../config/apiConfig';
 
 const AuthContext = createContext();
 
@@ -35,15 +36,12 @@ export function AuthProvider({ children }) {
         });
       }
 
-      // Send email verification with custom URL
-      await sendEmailVerification(user, {
-        url: 'http://localhost:5173',
-        handleCodeInApp: true,
-      });
+      // Send email verification with proper URL
+      await sendEmailVerification(user, actionCodeSettings);
 
       // Save user data to MongoDB
       try {
-        const response = await fetch('http://localhost:5000/api/users/saveUserData', {
+        const response = await fetch(AUTH_ENDPOINTS.SAVE_USER_DATA, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -89,24 +87,21 @@ export function AuthProvider({ children }) {
   }
 
   async function resendVerificationEmail() {
-    if (currentUser && !currentUser.emailVerified) {
-      try {
-        await sendEmailVerification(currentUser, {
-          url: 'http://localhost:5173/verify-email',
-          handleCodeInApp: true,
-        });
-        return true;
-      } catch (error) {
-        throw new Error(error.message);
-      }
+    if (!currentUser) {
+      throw new Error('No user signed in');
+    }
+
+    try {
+      await sendEmailVerification(currentUser, actionCodeSettings);
+      return true;
+    } catch (error) {
+      throw new Error(error.message);
     }
   }
 
   async function resetPassword(email) {
     try {
-      await sendPasswordResetEmail(auth, email, {
-        url: 'http://localhost:5173/login',
-      });
+      await sendPasswordResetEmail(auth, email, actionCodeSettings);
       return true;
     } catch (error) {
       throw new Error(error.message);
@@ -137,7 +132,7 @@ export function AuthProvider({ children }) {
 
       // Sync with MongoDB
       try {
-        const response = await fetch('http://localhost:5000/api/users/saveUserData', {
+        const response = await fetch(AUTH_ENDPOINTS.SAVE_USER_DATA, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

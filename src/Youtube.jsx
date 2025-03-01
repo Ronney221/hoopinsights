@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from './contexts/AuthContext';
+import { STATS_ENDPOINTS, createApiHeaders } from './config/apiConfig';
 
 const Youtube = ({ setCurrentPage }) => {
   const { currentUser } = useAuth();
@@ -456,14 +457,9 @@ const Youtube = ({ setCurrentPage }) => {
       };
       
       // Make API call to save the game
-      const response = await fetch('/api/stats/saveGame', {
+      const response = await fetch(STATS_ENDPOINTS.SAVE_GAME, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await currentUser.getIdToken()}`,
-          'X-User-Id': currentUser.uid,
-          'X-User-Email': currentUser.email || ''
-        },
+        headers: await createApiHeaders(currentUser),
         body: JSON.stringify(gameData)
       });
       
