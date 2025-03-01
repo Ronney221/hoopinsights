@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const Stat = require('../models/Stat');
-const Video = require('../models/Video');
+const StatNew = require('../models/StatNew');
+const VideoNew = require('../models/VideoNew');
 const { authenticateUser } = require('../middleware/auth');
 
 // Create a new stat record
@@ -16,7 +16,7 @@ router.post('/', authenticateUser, async (req, res) => {
     }
 
     // Create new stat record
-    const newStat = new Stat({
+    const newStat = new StatNew({
       videoId,
       type,
       value: value || 1,
@@ -30,8 +30,8 @@ router.post('/', authenticateUser, async (req, res) => {
     const savedStat = await newStat.save();
 
     // Update the video's lastTrackedTime if this timestamp is later
-    await Video.findOneAndUpdate(
-      { youtubeId: videoId, lastTrackedTime: { $lt: timestamp } },
+    await VideoNew.findOneAndUpdate(
+      { internalId: videoId, lastTrackedTime: { $lt: timestamp } },
       { $set: { lastTrackedTime: timestamp } },
       { new: true }
     );
@@ -43,26 +43,31 @@ router.post('/', authenticateUser, async (req, res) => {
   }
 });
 
-// Get all stats for a specific video
+// Get all stats for a specific video by original YouTube ID
 router.get('/video/:youtubeId', async (req, res) => {
   try {
     const { youtubeId } = req.params;
     
-    // Find the video first
-    const video = await Video.findOne({ youtubeId });
+    // Find the video first using the original YouTube ID
+    const video = await VideoNew.findOne({ originalYoutubeId: youtubeId });
     if (!video) {
       return res.status(404).json({ error: 'Video not found' });
     }
     
-    // Get all stats for this video
-    const stats = await Stat.find({ videoId: youtubeId })
-      .sort({ timestamp: 1 })
-      .populate('createdBy', 'displayName email');
+    // Get all stats for this video using internalId
+    const stats = await StatNew.find({ videoId: video.internalId })
+      .sort({ timestamp: 1 });
     
-    res.json({
-      video,
+    // Format the response to use the original YouTube ID
+    const response = {
+      video: {
+        ...video.toObject(),
+        videoId: video.originalYoutubeId // Return original YouTube ID to the client
+      },
       stats
-    });
+    };
+    
+    res.json(response);
   } catch (error) {
     console.error('Error fetching video stats:', error);
     res.status(500).json({ error: 'Failed to fetch video stats' });
@@ -74,7 +79,8 @@ router.get('/lastTracked/:youtubeId', async (req, res) => {
   try {
     const { youtubeId } = req.params;
     
-    const video = await Video.findOne({ youtubeId });
+    // Find the video by original YouTube ID
+    const video = await VideoNew.findOne({ originalYoutubeId: youtubeId });
     if (!video) {
       return res.json({ lastTime: 0 });
     }
@@ -98,12 +104,17 @@ router.post('/initVideo', authenticateUser, async (req, res) => {
       return res.status(400).json({ error: 'YouTube ID is required' });
     }
     
-    // Find or create video record
-    let video = await Video.findOne({ youtubeId });
+    // Find or create video record using originalYoutubeId and user ID
+    let video = await VideoNew.findOne({ 
+      originalYoutubeId: youtubeId,
+      createdBy: req.user.uid 
+    });
     
     if (!video) {
-      video = new Video({
-        youtubeId,
+      // Create a new video with the consistent ID format
+      video = new VideoNew({
+        originalYoutubeId: youtubeId,
+        // youtubeId will be auto-generated in the pre-save hook
         title: title || 'Untitled Video',
         lastTrackedTime: 0,
         totalStats: 0,
@@ -112,7 +123,13 @@ router.post('/initVideo', authenticateUser, async (req, res) => {
       await video.save();
     }
     
-    res.json(video);
+    // Format the response with the original YouTube ID
+    const response = {
+      ...video.toObject(),
+      videoId: video.originalYoutubeId // Return the original YouTube ID to the client
+    };
+    
+    res.json(response);
   } catch (error) {
     console.error('Error initializing video:', error);
     res.status(500).json({ error: 'Failed to initialize video tracking' });
@@ -124,7 +141,7 @@ router.delete('/:statId', authenticateUser, async (req, res) => {
   try {
     const { statId } = req.params;
     
-    const stat = await Stat.findById(statId);
+    const stat = await StatNew.findById(statId);
     if (!stat) {
       return res.status(404).json({ error: 'Stat not found' });
     }
@@ -134,11 +151,11 @@ router.delete('/:statId', authenticateUser, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to delete this stat' });
     }
     
-    await Stat.findByIdAndDelete(statId);
+    await StatNew.findByIdAndDelete(statId);
     
     // Update total stats count for the video
-    await Video.findOneAndUpdate(
-      { youtubeId: stat.videoId },
+    await VideoNew.findOneAndUpdate(
+      { internalId: stat.videoId },
       { $inc: { totalStats: -1 } }
     );
     
@@ -172,16 +189,16 @@ router.post('/saveGame', authenticateUser, async (req, res) => {
 
     console.log(`[${req.user.uid}] Saving game: ${title} with ${stats.length} stats`);
 
-    // Find user's video by YouTube ID and user ID
-    let video = await Video.findOne({ 
-      originalYoutubeId: videoId, // Use originalYoutubeId for lookup
+    // Find user's video by original YouTube ID and user ID
+    let video = await VideoNew.findOne({ 
+      originalYoutubeId: videoId,
       createdBy: req.user.uid
     });
     
     // Delete all existing stats for this specific user's video if it exists
     if (video) {
-      await Stat.deleteMany({ 
-        videoId: video.internalId, // Use internalId for stats
+      await StatNew.deleteMany({ 
+        videoId: video.internalId,
         createdBy: req.user.uid
       });
       
@@ -190,19 +207,15 @@ router.post('/saveGame', authenticateUser, async (req, res) => {
     
     try {
       if (!video) {
-        // Generate unique IDs
-        const crypto = require('crypto');
-        const randomString = crypto.randomBytes(8).toString('hex');
+        // Create a new video document with consistent ID format
+        const shortRandom = require('crypto').randomBytes(4).toString('hex');
+        const userSpecificYoutubeId = `${videoId}__${req.user.uid}`;
+        const generatedInternalId = `vid_${req.user.uid}_${videoId}_${shortRandom}`;
         
-        // Create a randomized youtubeId to avoid duplicates
-        const uniqueYoutubeId = `${videoId}_${randomString}`;
-        const internalId = `vid_${randomString}`;
-        
-        // Create a new video document
-        video = new Video({
-          youtubeId: uniqueYoutubeId, // Store randomized ID here to avoid DB conflicts
-          originalYoutubeId: videoId, // Store the actual YouTube ID here for reference
-          internalId: internalId,
+        video = new VideoNew({
+          originalYoutubeId: videoId,
+          youtubeId: userSpecificYoutubeId, // Explicitly set instead of relying on hook
+          internalId: generatedInternalId, // Explicitly set instead of relying on hook
           title,
           teams,
           totalStats: stats.length,
@@ -212,7 +225,7 @@ router.post('/saveGame', authenticateUser, async (req, res) => {
         });
         
         await video.save();
-        console.log(`[${req.user.uid}] Created new video with internalId: ${internalId} (originalYoutubeId: ${videoId})`);
+        console.log(`[${req.user.uid}] Created new video with internalId: ${video.internalId} (originalYoutubeId: ${videoId})`);
       } else {
         // Update existing video
         video.title = title;
@@ -233,7 +246,7 @@ router.post('/saveGame', authenticateUser, async (req, res) => {
     
     // Prepare batch insert of stats
     const statsToInsert = stats.map(stat => ({
-      videoId: videoIdForStats, // Use internalId for stats references
+      videoId: videoIdForStats,
       type: stat.type,
       value: stat.value || 1,
       player: stat.player,
@@ -249,7 +262,7 @@ router.post('/saveGame', authenticateUser, async (req, res) => {
     
     for (let i = 0; i < statsToInsert.length; i += BATCH_SIZE) {
       const batch = statsToInsert.slice(i, i + BATCH_SIZE);
-      await Stat.insertMany(batch);
+      await StatNew.insertMany(batch);
       savedCount += batch.length;
       console.log(`[${req.user.uid}] Saved batch of ${batch.length} stats (${savedCount}/${statsToInsert.length})`);
     }
@@ -259,7 +272,7 @@ router.post('/saveGame', authenticateUser, async (req, res) => {
     
     res.status(201).json({
       message: 'Game saved successfully',
-      videoId: videoId, // Return the original YouTube ID to the client
+      videoId: videoId, // Return the original YouTube ID
       originalYoutubeId: videoId,
       internalId: video.internalId,
       title: title,
@@ -267,6 +280,20 @@ router.post('/saveGame', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     console.error('Error saving game:', error);
+    
+    // Provide more specific error messages for common validation issues
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.keys(error.errors).map(field => 
+        `${field}: ${error.errors[field].message}`
+      ).join(', ');
+      
+      return res.status(400).json({ 
+        error: 'Data validation failed', 
+        details: validationErrors,
+        message: `Failed to save game: ${validationErrors}`
+      });
+    }
+    
     res.status(500).json({ error: 'Failed to save game: ' + error.message });
   }
 });
@@ -276,9 +303,9 @@ router.delete('/deleteGame/:videoId', authenticateUser, async (req, res) => {
   try {
     const { videoId } = req.params;
     
-    // Find the video first
-    const video = await Video.findOne({ 
-      youtubeId: videoId,
+    // Find the video by original YouTube ID
+    const video = await VideoNew.findOne({ 
+      originalYoutubeId: videoId,
       createdBy: req.user.uid
     });
     
@@ -291,14 +318,14 @@ router.delete('/deleteGame/:videoId', authenticateUser, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to delete this game' });
     }
     
-    // Delete all stats for this video
-    await Stat.deleteMany({ 
-      videoId: videoId,
+    // Delete all stats for this video using internalId
+    await StatNew.deleteMany({ 
+      videoId: video.internalId,
       createdBy: req.user.uid 
     });
     
     // Delete the video document
-    await Video.findByIdAndDelete(video._id);
+    await VideoNew.findByIdAndDelete(video._id);
     
     res.json({ message: 'Game and all associated stats deleted successfully' });
   } catch (error) {
@@ -315,9 +342,7 @@ router.get('/savedGames', authenticateUser, async (req, res) => {
     console.log(`[${req.user.uid}] Starting savedGames request`);
     
     // IMPORTANT: Always filter by createdBy to ensure user isolation
-    // Each user should only see their own saved games, even if multiple users
-    // have saved the same YouTube video
-    const videos = await Video.find({ createdBy: req.user.uid })
+    const videos = await VideoNew.find({ createdBy: req.user.uid })
       .sort({ updatedAt: -1 })
       .lean();  // Use lean() for better performance
     
@@ -327,12 +352,10 @@ router.get('/savedGames', authenticateUser, async (req, res) => {
     }
     
     // Extract all internal video IDs for a single query
-    const videoIds = videos.map(video => video.internalId || video.youtubeId);
+    const videoIds = videos.map(video => video.internalId);
     
     // IMPORTANT: Always include createdBy in the query to ensure proper user isolation
-    // This ensures we only get stats created by this user, even if the videoId exists
-    // for multiple users
-    const allStats = await Stat.find({ 
+    const allStats = await StatNew.find({ 
       videoId: { $in: videoIds },
       createdBy: req.user.uid
     }).lean();  // Use lean() for better performance
@@ -360,14 +383,13 @@ router.get('/savedGames', authenticateUser, async (req, res) => {
     const savedGames = videos.map(video => ({
       id: video._id,
       title: video.title,
-      videoId: video.youtubeId, // The actual YouTube ID for the client
-      internalId: video.internalId || video.youtubeId, // Internal ID for referencing stats
-      videoUrl: `https://www.youtube.com/watch?v=${video.youtubeId}`,
+      videoId: video.originalYoutubeId, // Return original YouTube ID to client
+      internalId: video.internalId,
+      videoUrl: `https://www.youtube.com/watch?v=${video.originalYoutubeId}`,
       createdAt: video.createdAt,
       updatedAt: video.updatedAt,
       teams: video.teams,
-      // Match stats by internal ID
-      stats: statsMap[video.internalId || video.youtubeId] || [],
+      stats: statsMap[video.internalId] || [],
       shareId: video.shareId,
       isShared: video.isShared || false
     }));
@@ -396,9 +418,9 @@ router.post('/shareGame/:videoId', authenticateUser, async (req, res) => {
   try {
     const { videoId } = req.params;
     
-    // Find the video to share using youtubeId which is what client provides
-    const video = await Video.findOne({ 
-      youtubeId: videoId,
+    // Find the video to share using originalYoutubeId
+    const video = await VideoNew.findOne({ 
+      originalYoutubeId: videoId,
       createdBy: req.user.uid
     });
     
@@ -433,7 +455,7 @@ router.get('/shared/:shareId', async (req, res) => {
     const { shareId } = req.params;
     
     // Find the shared video
-    const video = await Video.findOne({ 
+    const video = await VideoNew.findOne({ 
       shareId,
       isShared: true
     }).lean();
@@ -443,9 +465,8 @@ router.get('/shared/:shareId', async (req, res) => {
     }
     
     // Get the stats for this video using internalId
-    const videoIdForStats = video.internalId || video.youtubeId;
-    const stats = await Stat.find({ 
-      videoId: videoIdForStats,
+    const stats = await StatNew.find({ 
+      videoId: video.internalId,
       createdBy: video.createdBy
     }).lean();
     
@@ -453,9 +474,9 @@ router.get('/shared/:shareId', async (req, res) => {
     const sharedGame = {
       id: video._id,
       title: video.title,
-      videoId: video.youtubeId,
-      internalId: videoIdForStats,
-      videoUrl: `https://www.youtube.com/watch?v=${video.youtubeId}`,
+      videoId: video.originalYoutubeId, // Return original YouTube ID instead of internal ID
+      internalId: video.internalId,
+      videoUrl: `https://www.youtube.com/watch?v=${video.originalYoutubeId}`,
       createdAt: video.createdAt,
       teams: video.teams,
       shareId: video.shareId,
@@ -489,7 +510,7 @@ router.post('/saveSharedGame/:shareId', authenticateUser, async (req, res) => {
     console.log(`User ${req.user.uid} saving shared game ${shareId} to their account`);
     
     // Find the shared video
-    const sharedVideo = await Video.findOne({ 
+    const sharedVideo = await VideoNew.findOne({ 
       shareId,
       isShared: true
     }).lean();
@@ -499,33 +520,28 @@ router.post('/saveSharedGame/:shareId', authenticateUser, async (req, res) => {
     }
     
     // Check if the user already has this game
-    const existingVideo = await Video.findOne({
-      youtubeId: sharedVideo.youtubeId,
+    const existingVideo = await VideoNew.findOne({
+      originalYoutubeId: sharedVideo.originalYoutubeId,
       createdBy: req.user.uid
     });
     
     if (existingVideo) {
       return res.status(409).json({ 
         error: 'You already have this game saved',
-        videoId: existingVideo.youtubeId
+        videoId: existingVideo.originalYoutubeId
       });
     }
     
-    // Generate a new unique internal ID for this copy
-    const crypto = require('crypto');
-    const randomString = crypto.randomBytes(8).toString('hex');
-    const newInternalId = `${sharedVideo.youtubeId}_${randomString}`;
-    
     // Get the stats for the shared video
-    const sharedStats = await Stat.find({
-      videoId: sharedVideo.internalId || sharedVideo.youtubeId,
+    const sharedStats = await StatNew.find({
+      videoId: sharedVideo.internalId,
       createdBy: sharedVideo.createdBy
     }).lean();
     
     // Create a new video for the current user
-    const newVideo = new Video({
-      youtubeId: sharedVideo.youtubeId,
-      internalId: newInternalId,
+    const newVideo = new VideoNew({
+      originalYoutubeId: sharedVideo.originalYoutubeId,
+      // youtubeId will be auto-generated in pre-save hook
       title: `${sharedVideo.title} (Copy)`,
       teams: sharedVideo.teams,
       totalStats: sharedStats.length,
@@ -534,12 +550,12 @@ router.post('/saveSharedGame/:shareId', authenticateUser, async (req, res) => {
     });
     
     await newVideo.save();
-    console.log(`Created new video for user ${req.user.uid}: ${newVideo.title} with internalId: ${newInternalId}`);
+    console.log(`Created new video for user ${req.user.uid}: ${newVideo.title} with internalId: ${newVideo.internalId}`);
     
     // Copy all stats to the new user's account
     if (sharedStats.length > 0) {
       const statsToInsert = sharedStats.map(stat => ({
-        videoId: newInternalId, // Use the new internal ID
+        videoId: newVideo.internalId, // Use the new video's internal ID
         type: stat.type,
         value: stat.value,
         player: stat.player,
@@ -555,7 +571,7 @@ router.post('/saveSharedGame/:shareId', authenticateUser, async (req, res) => {
       
       for (let i = 0; i < statsToInsert.length; i += BATCH_SIZE) {
         const batch = statsToInsert.slice(i, i + BATCH_SIZE);
-        await Stat.insertMany(batch);
+        await StatNew.insertMany(batch);
         savedCount += batch.length;
         console.log(`Saved batch of ${batch.length} stats (${savedCount}/${statsToInsert.length})`);
       }
@@ -566,7 +582,7 @@ router.post('/saveSharedGame/:shareId', authenticateUser, async (req, res) => {
     
     res.status(201).json({
       message: 'Game saved successfully to your account',
-      videoId: newVideo.youtubeId,
+      videoId: sharedVideo.originalYoutubeId, // Return original YouTube ID
       internalId: newVideo.internalId,
       title: newVideo.title,
       statsCount: sharedStats.length

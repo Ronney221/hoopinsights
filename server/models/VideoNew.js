@@ -1,14 +1,14 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto'); // For generating unique share IDs
 
-const videoSchema = new mongoose.Schema({
-  // This field will now store a randomized unique ID
+const videoNewSchema = new mongoose.Schema({
+  // This field will now store a combination of original YouTube ID and user ID
   youtubeId: {
     type: String,
     required: true,
-    unique: true // We'll make this unique since it's now randomized
+    unique: true // We'll make this unique since it's now user-specific
   },
-  // New field to store the actual YouTube ID for reference
+  // Store the actual YouTube ID for reference
   originalYoutubeId: {
     type: String,
     required: true,
@@ -82,11 +82,8 @@ const videoSchema = new mongoose.Schema({
   collaborators: [String] // Array of Firebase UIDs
 });
 
-// IMPORTANT: Do NOT add a unique index on youtubeId alone
-// ONLY use compound index to ensure each user can have their own copy of a YouTube video
-
 // Index for looking up videos by original YouTube ID and creator
-videoSchema.index(
+videoNewSchema.index(
   { originalYoutubeId: 1, createdBy: 1 }, 
   { 
     unique: true,
@@ -96,7 +93,7 @@ videoSchema.index(
 );
 
 // Index for efficient user-specific video queries
-videoSchema.index(
+videoNewSchema.index(
   { createdBy: 1, updatedAt: -1 }, 
   { 
     background: true,
@@ -105,19 +102,20 @@ videoSchema.index(
 );
 
 // Generate unique IDs for new videos
-videoSchema.pre('save', function(next) {
+videoNewSchema.pre('save', function(next) {
   // If this is a new document or it doesn't have required unique IDs
   if (this.isNew) {
-    // Ensure internalId exists
+    // Ensure internalId exists - this should be globally unique
     if (!this.internalId) {
-      const randomString = crypto.randomBytes(8).toString('hex');
-      this.internalId = `vid_${randomString}`;
+      // Use a combination of userId and originalYoutubeId plus a short random string for uniqueness
+      const shortRandom = crypto.randomBytes(4).toString('hex');
+      this.internalId = `vid_${this.createdBy}_${this.originalYoutubeId}_${shortRandom}`;
     }
     
-    // Ensure youtubeId is unique (if using the original approach)
-    if (this.youtubeId === this.originalYoutubeId) {
-      const randomString = crypto.randomBytes(8).toString('hex');
-      this.youtubeId = `${this.originalYoutubeId}_${randomString}`;
+    // Create a user-specific youtubeId that's predictable and always unique per user
+    // Format: originalYoutubeId__userId (double underscore as separator)
+    if (!this.youtubeId || this.youtubeId === this.originalYoutubeId) {
+      this.youtubeId = `${this.originalYoutubeId}__${this.createdBy}`;
     }
   }
   
@@ -127,16 +125,19 @@ videoSchema.pre('save', function(next) {
 });
 
 // Generate a unique share ID when a game is first shared
-videoSchema.methods.generateShareId = function() {
+videoNewSchema.methods.generateShareId = function() {
   if (!this.shareId) {
-    // Create a unique, URL-friendly ID
-    const randomBytes = crypto.randomBytes(8).toString('hex');
-    this.shareId = `${randomBytes}`;
+    // Create a unique, URL-friendly ID that includes part of the originalYoutubeId
+    // for easier debugging and identification
+    const randomBytes = crypto.randomBytes(6).toString('hex');
+    const youtubeIdPrefix = this.originalYoutubeId.substring(0, 4);
+    this.shareId = `${youtubeIdPrefix}_${randomBytes}`;
     this.isShared = true;
   }
   return this.shareId;
 };
 
-const Video = mongoose.model('Video', videoSchema);
+// Use a different collection name to avoid the unique index constraint in the existing collection
+const VideoNew = mongoose.model('VideoNew', videoNewSchema, 'videos_new');
 
-module.exports = Video; 
+module.exports = VideoNew; 

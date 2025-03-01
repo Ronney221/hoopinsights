@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from './contexts/AuthContext';
-import { STATS_ENDPOINTS, createApiHeaders } from './config/apiConfig';
+import { STATS_ENDPOINTS, STATS_V2_ENDPOINTS, createApiHeaders } from './config/apiConfig';
 
 const Youtube = ({ setCurrentPage }) => {
   const { currentUser } = useAuth();
@@ -24,6 +24,12 @@ const Youtube = ({ setCurrentPage }) => {
   const [gameTitle, setGameTitle] = useState('');
   const playerRef = useRef(null);
   const timeUpdateInterval = useRef(null);
+  const [selectedStatType, setSelectedStatType] = useState('FG Made');
+  const [showTeamSetup, setShowTeamSetup] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [recentStat, setRecentStat] = useState(null);
+  const recentStatTimeoutRef = useRef(null);
 
   // Load YouTube API
   useEffect(() => {
@@ -96,6 +102,15 @@ const Youtube = ({ setCurrentPage }) => {
         } catch (e) {
           console.error('Error destroying player:', e);
         }
+      }
+    };
+  }, []);
+
+  // Reset timer when component unmounts
+  useEffect(() => {
+    return () => {
+      if (recentStatTimeoutRef.current) {
+        clearTimeout(recentStatTimeoutRef.current);
       }
     };
   }, []);
@@ -249,6 +264,12 @@ const Youtube = ({ setCurrentPage }) => {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
+  const formatTimestamp = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString();
+  };
+
+  // Handle recording a stat
   const recordStat = (statType, value = 1) => {
     if (!selectedPlayer) {
       toast.warning('Please select a player first');
@@ -279,11 +300,32 @@ const Youtube = ({ setCurrentPage }) => {
         createdAt: new Date().toISOString()
       };
       
-      setStats(prevStats => [...prevStats, newStat]);
-      toast.success(`Recorded: ${statType} for ${selectedPlayer} (${teams[selectedTeam].name}) at ${formatTime(time)}`);
+      // Add to stats state
+      setStats(prevStats => {
+        const updatedStats = [...prevStats, newStat];
+        // Save to local storage
+        saveStatsToLocalStorage(updatedStats);
+        return updatedStats;
+      });
       
-      // Save to local storage
-      saveStatsToLocalStorage([...stats, newStat]);
+      // Set as recent stat for announcement
+      setRecentStat(newStat);
+      
+      // Clear any existing timeout and set a new one
+      if (recentStatTimeoutRef.current) {
+        clearTimeout(recentStatTimeoutRef.current);
+      }
+      
+      // Clear recent stat after 4 seconds
+      recentStatTimeoutRef.current = setTimeout(() => {
+        setRecentStat(null);
+      }, 4000);
+      
+      // Show quick toast notification - don't specify position
+      toast.success(`Recorded: ${statType} for ${selectedPlayer} (${teams[selectedTeam].name}) at ${formatTime(time)}`, {
+        autoClose: 2000
+      });
+      
     } catch (error) {
       console.error('Error recording stat:', error);
       toast.error('Error recording stat. Please try again.');
@@ -445,6 +487,16 @@ const Youtube = ({ setCurrentPage }) => {
     try {
       setSavingToDb(true);
       
+      // Create a clean copy of stats to ensure no unexpected references
+      const statsToSave = [...stats].map(stat => ({
+        type: stat.type,
+        value: stat.value || 1,
+        player: stat.player,
+        team: stat.team,
+        timestamp: stat.timestamp,
+        formattedTime: stat.formattedTime
+      }));
+      
       // Prepare data for saving
       const gameData = {
         title: gameTitle,
@@ -452,12 +504,14 @@ const Youtube = ({ setCurrentPage }) => {
         videoUrl,
         userId: currentUser.uid,
         teams,
-        stats,
+        stats: statsToSave,
         createdAt: new Date().toISOString()
       };
       
-      // Make API call to save the game
-      const response = await fetch(STATS_ENDPOINTS.SAVE_GAME, {
+      console.log('Saving game data:', { title: gameData.title, statsCount: statsToSave.length });
+      
+      // Make API call to save the game using V2 endpoints
+      const response = await fetch(STATS_V2_ENDPOINTS.SAVE_GAME, {
         method: 'POST',
         headers: await createApiHeaders(currentUser),
         body: JSON.stringify(gameData)
@@ -470,6 +524,10 @@ const Youtube = ({ setCurrentPage }) => {
       
       const result = await response.json();
       console.log('Game saved successfully:', result);
+      
+      // Give visual feedback of successful save
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000);
       
       toast.success('Game saved successfully!');
     } catch (error) {
@@ -755,42 +813,60 @@ const Youtube = ({ setCurrentPage }) => {
                 {/* Stats Table */}
                 <div className="card bg-base-100 shadow-xl overflow-hidden mb-6">
                   <div className="card-body">
-                    <h2 className="card-title">Recent Stats</h2>
-                    <div className="overflow-x-auto">
-                      <table className="table table-zebra w-full">
-                        <thead>
-                          <tr>
-                            <th>Time</th>
-                            <th>Team</th>
-                            <th>Player</th>
-                            <th>Stat</th>
-                            <th>Action</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {stats.slice().reverse().slice(0, 10).map(stat => (
-                            <tr key={stat.id}>
-                              <td>{stat.formattedTime}</td>
-                              <td>{teams[stat.team].name}</td>
-                              <td>{stat.player}</td>
-                              <td>{stat.type}</td>
-                              <td>
-                                <button 
-                                  onClick={() => jumpToStatTime(stat.timestamp)}
-                                  className="btn btn-xs btn-outline"
-                                >
-                                  Jump
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                          {stats.length === 0 && (
+                    <div className="flex justify-between items-center mb-2">
+                      <h2 className="card-title">Recent Stats</h2>
+                      {stats.length > 10 && (
+                        <div className="text-xs opacity-70">Scroll to see more</div>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <div className="overflow-y-auto max-h-80 scrollbar-thin scrollbar-thumb-base-300 scrollbar-track-base-100 pr-2 pb-1 custom-scrollbar">
+                        <table className="table table-zebra w-full">
+                          <thead className="sticky top-0 bg-base-100 z-10 shadow-sm">
                             <tr>
-                              <td colSpan="5" className="text-center py-4">No stats recorded yet</td>
+                              <th>Time</th>
+                              <th>Team</th>
+                              <th>Player</th>
+                              <th>Stat</th>
+                              <th>Action</th>
                             </tr>
-                          )}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {stats.slice().reverse().map(stat => (
+                              <tr key={stat.id} className={`transition-all hover:bg-base-200 ${
+                                stat.type.includes('Made') ? 'bg-success/10' : 
+                                stat.type.includes('Missed') ? 'bg-error/10' : 
+                                ''
+                              }`}>
+                                <td>{stat.formattedTime}</td>
+                                <td>{teams[stat.team].name}</td>
+                                <td>{stat.player}</td>
+                                <td className={
+                                  stat.type.includes('Made') ? 'text-success font-medium' : 
+                                  stat.type.includes('Missed') ? 'text-error' : 
+                                  ''
+                                }>{stat.type}</td>
+                                <td>
+                                  <button 
+                                    onClick={() => jumpToStatTime(stat.timestamp)}
+                                    className="btn btn-xs btn-outline"
+                                  >
+                                    Jump
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                            {stats.length === 0 && (
+                              <tr>
+                                <td colSpan="5" className="text-center py-4">No stats recorded yet</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                      {stats.length > 10 && (
+                        <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-base-100 to-transparent pointer-events-none"></div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -900,14 +976,14 @@ const Youtube = ({ setCurrentPage }) => {
                             className="btn flex-1 bg-success hover:bg-success/80 border-success text-white"
                             disabled={!selectedPlayer}
                           >
-                            FG Made
+                            Made
                           </button>
                           <button 
                             onClick={() => recordStat('FG Missed')}
                             className="btn flex-1 bg-error hover:bg-error/80 border-error text-white"
                             disabled={!selectedPlayer}
                           >
-                            FG Missed
+                            Missed
                           </button>
                         </div>
                       </div>
@@ -920,14 +996,14 @@ const Youtube = ({ setCurrentPage }) => {
                             className="btn flex-1 bg-success hover:bg-success/80 border-success text-white"
                             disabled={!selectedPlayer}
                           >
-                            3PT Made
+                            Made
                           </button>
                           <button 
                             onClick={() => recordStat('3PT Missed')}
                             className="btn flex-1 bg-error hover:bg-error/80 border-error text-white"
                             disabled={!selectedPlayer}
                           >
-                            3PT Missed
+                            Missed
                           </button>
                         </div>
                       </div>
@@ -940,14 +1016,14 @@ const Youtube = ({ setCurrentPage }) => {
                             className="btn flex-1 bg-success hover:bg-success/80 border-success text-white"
                             disabled={!selectedPlayer}
                           >
-                            FT Made
+                            Made
                           </button>
                           <button 
                             onClick={() => recordStat('FT Missed')}
                             className="btn flex-1 bg-error hover:bg-error/80 border-error text-white"
                             disabled={!selectedPlayer}
                           >
-                            FT Missed
+                            Missed
                           </button>
                         </div>
                       </div>
@@ -1008,60 +1084,95 @@ const Youtube = ({ setCurrentPage }) => {
           
           {/* Player Stats Summary - Only show if we have stats */}
           {videoId && stats.length > 0 && (
-            <div className="mt-10">
+            <div className="mt-10 mb-16">
               <h2 className="text-2xl font-bold mb-6 text-center">Player Statistics</h2>
-              <div className="overflow-x-auto">
-                <table className="table table-zebra w-full">
-                  <thead>
-                    <tr>
-                      <th>Team</th>
-                      <th>Player</th>
-                      <th>PTS</th>
-                      <th>FG</th>
-                      <th>FG%</th>
-                      <th>2PT</th>
-                      <th>2PT%</th>
-                      <th>3PT</th>
-                      <th>3PT%</th>
-                      <th>FT</th>
-                      <th>FT%</th>
-                      <th>REB</th>
-                      <th>AST</th>
-                      <th>STL</th>
-                      <th>BLK</th>
-                      <th>TO</th>
-                      <th>PF</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {getPlayersWithStats().map(playerStat => (
-                      <tr key={`${playerStat.team}|${playerStat.name}`}>
-                        <td className="font-medium">{playerStat.teamName}</td>
-                        <td className="font-medium">{playerStat.name}</td>
-                        <td>{playerStat.points}</td>
-                        <td>{playerStat.fgMade}/{playerStat.fgAttempts}</td>
-                        <td>{playerStat.fgPercentage}%</td>
-                        <td>{playerStat.twoPtMade}/{playerStat.twoPtAttempts}</td>
-                        <td>{playerStat.twoPtPercentage}%</td>
-                        <td>{playerStat.threePtMade}/{playerStat.threePtAttempts}</td>
-                        <td>{playerStat.threePtPercentage}%</td>
-                        <td>{playerStat.ftMade}/{playerStat.ftAttempts}</td>
-                        <td>{playerStat.ftPercentage}%</td>
-                        <td>{playerStat.rebounds}</td>
-                        <td>{playerStat.assists}</td>
-                        <td>{playerStat.steals}</td>
-                        <td>{playerStat.blocks}</td>
-                        <td>{playerStat.turnovers}</td>
-                        <td>{playerStat.fouls}</td>
-                      </tr>
-                    ))}
-                    {getPlayersWithStats().length === 0 && (
-                      <tr>
-                        <td colSpan="17" className="text-center py-4">No player stats available</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+              
+              <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-200">
+                <div className="card-body p-0">
+                  <div className="overflow-x-auto">
+                    <table className="table table-zebra w-full">
+                      <thead className="sticky top-0 bg-base-100 z-10 shadow-sm text-xs">
+                        <tr>
+                          {/* Player Info */}
+                          <th className="bg-base-200/50">Team</th>
+                          <th className="bg-base-200/50">Player</th>
+                          
+                          {/* Core Stats */}
+                          <th>PTS</th>
+                          <th>REB</th>
+                          <th>AST</th>
+                          <th>STL</th>
+                          <th>BLK</th>
+                          <th>TO</th>
+                          <th>PF</th>
+                          
+                          {/* Shooting Stats */}
+                          <th className="bg-base-200/30">FG</th>
+                          <th className="bg-base-200/30">2PT</th>
+                          <th className="bg-base-200/30">3PT</th>
+                          <th className="bg-base-200/30">FT</th>
+                          
+                          {/* Percentages */}
+                          <th className="bg-primary/10">FG%</th>
+                          <th className="bg-primary/10">2PT%</th>
+                          <th className="bg-primary/10">3PT%</th>
+                          <th className="bg-primary/10">FT%</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getPlayersWithStats().map(playerStat => (
+                          <tr key={`${playerStat.team}|${playerStat.name}`} className="hover:bg-base-200/50 transition-colors">
+                            {/* Player Info */}
+                            <td className="font-medium bg-base-200/50">{playerStat.teamName}</td>
+                            <td className="font-medium bg-base-200/50">{playerStat.name}</td>
+                            
+                            {/* Core Stats */}
+                            <td className="font-bold">{playerStat.points}</td>
+                            <td>{playerStat.rebounds}</td>
+                            <td>{playerStat.assists}</td>
+                            <td>{playerStat.steals}</td>
+                            <td>{playerStat.blocks}</td>
+                            <td>{playerStat.turnovers}</td>
+                            <td>{playerStat.fouls}</td>
+                            
+                            {/* Shooting Stats */}
+                            <td className="bg-base-200/30">{playerStat.fgMade}/{playerStat.fgAttempts}</td>
+                            <td className="bg-base-200/30">{playerStat.twoPtMade}/{playerStat.twoPtAttempts}</td>
+                            <td className="bg-base-200/30">{playerStat.threePtMade}/{playerStat.threePtAttempts}</td>
+                            <td className="bg-base-200/30">{playerStat.ftMade}/{playerStat.ftAttempts}</td>
+                            
+                            {/* Percentages */}
+                            <td className={`bg-primary/10 font-medium ${playerStat.fgPercentage >= 50 ? 'text-success' : playerStat.fgPercentage <= 30 && playerStat.fgAttempts > 0 ? 'text-error' : ''}`}>
+                              {playerStat.fgPercentage}%
+                            </td>
+                            <td className={`bg-primary/10 font-medium ${playerStat.twoPtPercentage >= 50 ? 'text-success' : playerStat.twoPtPercentage <= 30 && playerStat.twoPtAttempts > 0 ? 'text-error' : ''}`}>
+                              {playerStat.twoPtPercentage}%
+                            </td>
+                            <td className={`bg-primary/10 font-medium ${playerStat.threePtPercentage >= 40 ? 'text-success' : playerStat.threePtPercentage <= 25 && playerStat.threePtAttempts > 0 ? 'text-error' : ''}`}>
+                              {playerStat.threePtPercentage}%
+                            </td>
+                            <td className={`bg-primary/10 font-medium ${playerStat.ftPercentage >= 75 ? 'text-success' : playerStat.ftPercentage <= 50 && playerStat.ftAttempts > 0 ? 'text-error' : ''}`}>
+                              {playerStat.ftPercentage}%
+                            </td>
+                          </tr>
+                        ))}
+                        {getPlayersWithStats().length === 0 && (
+                          <tr>
+                            <td colSpan="17" className="text-center py-4">No player stats available</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  
+                  <div className="px-4 py-2 text-xs text-center opacity-70">
+                    <span className="mr-4">Scroll horizontally to see all statistics</span>
+                    <span className="inline-block">
+                      <span className="inline-block w-3 h-3 rounded-full bg-success mr-1"></span> Good
+                      <span className="inline-block w-3 h-3 rounded-full bg-error mx-1 ml-3"></span> Poor
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1085,7 +1196,7 @@ const Youtube = ({ setCurrentPage }) => {
                     />
                     <div className="flex gap-2">
                       <button
-                        className="btn btn-primary"
+                        className={`btn ${isSaved ? 'btn-success' : 'btn-primary'}`}
                         onClick={saveGameToDatabase}
                         disabled={savingToDb || !gameTitle.trim() || stats.length === 0}
                       >
@@ -1093,6 +1204,13 @@ const Youtube = ({ setCurrentPage }) => {
                           <>
                             <span className="loading loading-spinner loading-xs"></span>
                             Saving...
+                          </>
+                        ) : isSaved ? (
+                          <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Saved!
                           </>
                         ) : (
                           "Save Game"
@@ -1126,6 +1244,28 @@ const Youtube = ({ setCurrentPage }) => {
             </div>
           )}
           
+          {/* Real-time Stat Announcer - moved to just below the video player to avoid interference */}
+          {recentStat && (
+            <div className="fixed top-32 right-8 z-40 animate-slideInRight">
+              <div className="card shadow-lg border border-base-300 bg-base-100 w-64 opacity-90 hover:opacity-100 transition-opacity">
+                <div className="card-body p-3">
+                  <div className="text-xs opacity-70 mb-1">New Stat Recorded</div>
+                  <div className="font-bold text-lg leading-tight">
+                    {recentStat.player} 
+                    <span className={
+                      recentStat.type.includes('Made') ? ' text-success' : 
+                      recentStat.type.includes('Missed') ? ' text-error' : ''
+                    }> {recentStat.type}</span>
+                  </div>
+                  <div className="flex justify-between text-sm mt-1">
+                    <span>{teams[recentStat.team]?.name || ''}</span>
+                    <span className="font-mono">{recentStat.formattedTime}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* Back Button */}
           <div className="flex justify-center mt-8">
             <button 
@@ -1140,6 +1280,52 @@ const Youtube = ({ setCurrentPage }) => {
           </div>
         </div>
       </div>
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: rgba(0, 0, 0, 0.1);
+          border-radius: 20px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(0, 0, 0, 0.2);
+        }
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+        }
+
+        /* Animation for stat announcer */
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 0.9;
+          }
+        }
+
+        @keyframes slideOutRight {
+          from {
+            transform: translateX(0);
+            opacity: 0.9;
+          }
+          to {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+        }
+
+        .animate-slideInRight {
+          animation: slideInRight 0.3s ease-out forwards, slideOutRight 0.3s ease-in forwards 3.7s;
+        }
+      `}</style>
     </div>
   );
 };

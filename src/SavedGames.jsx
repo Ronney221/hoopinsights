@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from './contexts/AuthContext';
-import { STATS_ENDPOINTS, createApiHeaders } from './config/apiConfig';
+import { STATS_ENDPOINTS, STATS_V2_ENDPOINTS, createApiHeaders, APP_URL } from './config/apiConfig';
 
 const SavedGames = ({ setCurrentPage }) => {
   const { currentUser } = useAuth();
@@ -10,6 +10,8 @@ const SavedGames = ({ setCurrentPage }) => {
   const [selectedGame, setSelectedGame] = useState(null);
   const [expandedGame, setExpandedGame] = useState(null);
   const [filterOption, setFilterOption] = useState('all');
+  const [sharingGame, setSharingGame] = useState(null);
+  const [shareUrls, setShareUrls] = useState({});
 
   // Demo games data with the provided players and YouTube link
   const demoGames = [
@@ -187,8 +189,8 @@ const SavedGames = ({ setCurrentPage }) => {
       try {
         setLoading(true);
         
-        // Fetch saved games from the API
-        const response = await fetch(STATS_ENDPOINTS.GET_SAVED_GAMES, {
+        // Fetch saved games from the API using V2 endpoints
+        const response = await fetch(STATS_V2_ENDPOINTS.GET_SAVED_GAMES, {
           headers: await createApiHeaders(currentUser)
         });
         
@@ -381,7 +383,7 @@ const SavedGames = ({ setCurrentPage }) => {
     
     if (window.confirm('Are you sure you want to delete this saved game?')) {
       try {
-        const response = await fetch(STATS_ENDPOINTS.DELETE_GAME(game.videoId), {
+        const response = await fetch(STATS_V2_ENDPOINTS.DELETE_GAME(game.videoId), {
           method: 'DELETE',
           headers: await createApiHeaders(currentUser)
         });
@@ -431,6 +433,51 @@ const SavedGames = ({ setCurrentPage }) => {
     const totalStats = game.stats.length;
     
     return { totalPoints, totalStats };
+  };
+
+  // New function to share a game
+  const shareGame = async (game, e) => {
+    e.stopPropagation(); // Prevent expanding the game card
+    
+    try {
+      setSharingGame(game.videoId);
+      
+      // Check if we already have a share URL for this game
+      if (shareUrls[game.videoId]) {
+        // Copy existing share URL to clipboard
+        await navigator.clipboard.writeText(shareUrls[game.videoId]);
+        toast.success('Share link copied to clipboard!');
+        return;
+      }
+      
+      // Generate a share link using V2 endpoints
+      const response = await fetch(STATS_V2_ENDPOINTS.SHARE_GAME(game.videoId), {
+        method: 'POST',
+        headers: await createApiHeaders(currentUser)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to share game');
+      }
+      
+      const result = await response.json();
+      
+      // Save the share URL
+      setShareUrls(prev => ({
+        ...prev,
+        [game.videoId]: result.shareUrl
+      }));
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(result.shareUrl);
+      toast.success('Share link copied to clipboard!');
+    } catch (error) {
+      console.error('Error sharing game:', error);
+      toast.error(error.message || 'Failed to share game');
+    } finally {
+      setSharingGame(null);
+    }
   };
 
   return (
@@ -648,7 +695,25 @@ const SavedGames = ({ setCurrentPage }) => {
                         </div>
                       </div>
                       
-                      <div className="card-actions justify-end mt-4">
+                      <div className="card-actions justify-end mt-4 flex">
+                        {/* Share Button */}
+                        <button 
+                          className="btn btn-outline btn-sm flex-1"
+                          onClick={(e) => shareGame(game, e)}
+                          disabled={sharingGame === game.videoId}
+                        >
+                          {sharingGame === game.videoId ? (
+                            <span className="loading loading-spinner loading-xs"></span>
+                          ) : (
+                            <>
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                              </svg>
+                              {shareUrls[game.videoId] ? 'Copy Link' : 'Share'}
+                            </>
+                          )}
+                        </button>
+                        
                         <button 
                           className="btn btn-primary btn-sm flex-1"
                           onClick={(e) => {
@@ -659,6 +724,27 @@ const SavedGames = ({ setCurrentPage }) => {
                           Continue Tracking
                         </button>
                       </div>
+                      
+                      {/* Share URL display */}
+                      {shareUrls[game.videoId] && (
+                        <div className="mt-3 animate-fadeIn">
+                          <div className="flex items-center gap-2 bg-base-200 p-2 rounded-lg text-xs">
+                            <span className="opacity-70 truncate flex-1">
+                              {shareUrls[game.videoId]}
+                            </span>
+                            <button 
+                              className="btn btn-xs btn-ghost"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                await navigator.clipboard.writeText(shareUrls[game.videoId]);
+                                toast.success('Link copied!');
+                              }}
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Expandable section with player stats */}

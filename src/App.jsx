@@ -9,6 +9,7 @@ import VerifyEmail from './VerifyEmail';
 import Home from './Home';
 import Youtube from './Youtube';
 import SavedGames from './SavedGames';
+import SharedGame from './SharedGame';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
@@ -23,21 +24,43 @@ function App() {
       return 'verify-email';
     }
     
+    // Check if we're on a shared game page
+    const path = window.location.pathname;
+    if (path.startsWith('/shared/')) {
+      // Extract the shareId from the URL
+      const shareId = path.substring('/shared/'.length);
+      return `shared-${shareId}`;
+    }
+    
     // Get page from URL path or fallback to home
-    const pagePath = window.location.pathname.substring(1) || 'home';
+    const pagePath = path.substring(1) || 'home';
     return pagePath;
   });
 
   // Update URL when page changes
   useEffect(() => {
-    const path = currentPage === 'home' ? '/' : `/${currentPage}`;
-    window.history.pushState({}, '', path);
+    if (currentPage.startsWith('shared-')) {
+      const shareId = currentPage.substring('shared-'.length);
+      window.history.pushState({}, '', `/shared/${shareId}`);
+    } else {
+      const path = currentPage === 'home' ? '/' : `/${currentPage}`;
+      window.history.pushState({}, '', path);
+    }
   }, [currentPage]);
 
   // Handle browser back/forward buttons
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname;
+      
+      // Handle shared game URLs
+      if (path.startsWith('/shared/')) {
+        const shareId = path.substring('/shared/'.length);
+        setCurrentPage(`shared-${shareId}`);
+        return;
+      }
+      
+      // Handle regular pages
       const pagePath = path.substring(1) || 'home';
       setCurrentPage(pagePath);
     };
@@ -46,34 +69,43 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // Determine what content to render
   let content;
-  switch (currentPage) {
-    case "home":
-      content = <Home setCurrentPage={setCurrentPage} />;
-      break;
-    case "register":
-      content = <Register setCurrentPage={setCurrentPage} />;
-      break;
-    case "analytics":
-      content = <Analytics />;
-      break;
-    case "youtube":
-      content = <Youtube setCurrentPage={setCurrentPage} />;
-      break;
-    case "login":
-      content = <Login setCurrentPage={setCurrentPage} />;
-      break;
-    case "profile":
-      content = <Profile setCurrentPage={setCurrentPage} />;
-      break;
-    case "verify-email":
-      content = <VerifyEmail setCurrentPage={setCurrentPage} />;
-      break;
-    case "saved-games":
-      content = <SavedGames setCurrentPage={setCurrentPage} />;
-      break;
-    default:
-      content = <Home setCurrentPage={setCurrentPage} />;
+  
+  // Handle shared game pages
+  if (currentPage.startsWith('shared-')) {
+    const shareId = currentPage.substring('shared-'.length);
+    content = <SharedGame shareId={shareId} setCurrentPage={setCurrentPage} />;
+  } else {
+    // Handle regular pages
+    switch (currentPage) {
+      case "home":
+        content = <Home setCurrentPage={setCurrentPage} />;
+        break;
+      case "register":
+        content = <Register setCurrentPage={setCurrentPage} />;
+        break;
+      case "analytics":
+        content = <Analytics />;
+        break;
+      case "youtube":
+        content = <Youtube setCurrentPage={setCurrentPage} />;
+        break;
+      case "login":
+        content = <Login setCurrentPage={setCurrentPage} />;
+        break;
+      case "profile":
+        content = <Profile setCurrentPage={setCurrentPage} />;
+        break;
+      case "verify-email":
+        content = <VerifyEmail setCurrentPage={setCurrentPage} />;
+        break;
+      case "saved-games":
+        content = <SavedGames setCurrentPage={setCurrentPage} />;
+        break;
+      default:
+        content = <Home setCurrentPage={setCurrentPage} />;
+    }
   }
 
   return (
