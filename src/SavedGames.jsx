@@ -10,9 +10,175 @@ const SavedGames = ({ setCurrentPage }) => {
   const [expandedGame, setExpandedGame] = useState(null);
   const [filterOption, setFilterOption] = useState('all');
 
+  // Demo games data with the provided players and YouTube link
+  const demoGames = [
+    {
+      id: 'demo-game-1',
+      videoId: 'dQw4w9WgXcQ',
+      videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      title: 'All-Stars Exhibition Game 2024',
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+      teams: {
+        team1: {
+          name: 'West All-Stars',
+          players: ['LeBron James', 'Stephen Curry', 'Victor Wembanyama']
+        },
+        team2: {
+          name: 'East All-Stars',
+          players: ['LaMelo Ball', 'Jayson Tatum', 'Joel Embiid']
+        }
+      },
+      stats: [
+        // LeBron James stats
+        { player: 'LeBron James', team: 'team1', type: 'FG Made', timestamp: 30, formattedTime: '0:30', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'FG Made', timestamp: 45, formattedTime: '0:45', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'FG Made', timestamp: 60, formattedTime: '1:00', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: '3PT Made', timestamp: 75, formattedTime: '1:15', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: '3PT Made', timestamp: 90, formattedTime: '1:30', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: '3PT Missed', timestamp: 105, formattedTime: '1:45', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'FT Made', timestamp: 120, formattedTime: '2:00', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'FT Made', timestamp: 125, formattedTime: '2:05', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'Rebound', timestamp: 140, formattedTime: '2:20', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'Rebound', timestamp: 155, formattedTime: '2:35', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'Assist', timestamp: 170, formattedTime: '2:50', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'Assist', timestamp: 185, formattedTime: '3:05', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'Steal', timestamp: 200, formattedTime: '3:20', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'Block', timestamp: 215, formattedTime: '3:35', uniquePlayerId: 'team1|LeBron James' },
+        
+        // Stephen Curry stats
+        { player: 'Stephen Curry', team: 'team1', type: 'FG Made', timestamp: 50, formattedTime: '0:50', uniquePlayerId: 'team1|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team1', type: 'FG Missed', timestamp: 65, formattedTime: '1:05', uniquePlayerId: 'team1|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team1', type: '3PT Made', timestamp: 80, formattedTime: '1:20', uniquePlayerId: 'team1|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team1', type: '3PT Made', timestamp: 95, formattedTime: '1:35', uniquePlayerId: 'team1|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team1', type: '3PT Made', timestamp: 110, formattedTime: '1:50', uniquePlayerId: 'team1|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team1', type: '3PT Made', timestamp: 125, formattedTime: '2:05', uniquePlayerId: 'team1|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team1', type: '3PT Missed', timestamp: 140, formattedTime: '2:20', uniquePlayerId: 'team1|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team1', type: '3PT Missed', timestamp: 155, formattedTime: '2:35', uniquePlayerId: 'team1|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team1', type: 'Rebound', timestamp: 170, formattedTime: '2:50', uniquePlayerId: 'team1|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team1', type: 'Assist', timestamp: 185, formattedTime: '3:05', uniquePlayerId: 'team1|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team1', type: 'Steal', timestamp: 200, formattedTime: '3:20', uniquePlayerId: 'team1|Stephen Curry' },
+        
+        // Victor Wembanyama stats
+        { player: 'Victor Wembanyama', team: 'team1', type: 'FG Made', timestamp: 40, formattedTime: '0:40', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: 'FG Made', timestamp: 55, formattedTime: '0:55', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: 'FG Made', timestamp: 70, formattedTime: '1:10', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: '3PT Made', timestamp: 85, formattedTime: '1:25', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: 'FG Missed', timestamp: 100, formattedTime: '1:40', uniquePlayerId: 'team1|Victor Wembanyama' },
+        
+        // LaMelo Ball stats
+        { player: 'LaMelo Ball', team: 'team2', type: 'FG Made', timestamp: 35, formattedTime: '0:35', uniquePlayerId: 'team2|LaMelo Ball' },
+        { player: 'LaMelo Ball', team: 'team2', type: 'FG Missed', timestamp: 50, formattedTime: '0:50', uniquePlayerId: 'team2|LaMelo Ball' },
+        { player: 'LaMelo Ball', team: 'team2', type: '3PT Made', timestamp: 65, formattedTime: '1:05', uniquePlayerId: 'team2|LaMelo Ball' },
+        { player: 'LaMelo Ball', team: 'team2', type: '3PT Made', timestamp: 80, formattedTime: '1:20', uniquePlayerId: 'team2|LaMelo Ball' },
+        { player: 'LaMelo Ball', team: 'team2', type: '3PT Missed', timestamp: 95, formattedTime: '1:35', uniquePlayerId: 'team2|LaMelo Ball' }
+      ]
+    },
+    {
+      id: 'demo-game-2',
+      videoId: 'dQw4w9WgXcQ',
+      videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      title: 'NBA Finals Highlights 2023',
+      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
+      teams: {
+        team1: {
+          name: 'Lakers',
+          players: ['LeBron James', 'Anthony Davis', 'Russell Westbrook']
+        },
+        team2: {
+          name: 'Warriors',
+          players: ['Stephen Curry', 'Klay Thompson', 'Draymond Green']
+        }
+      },
+      stats: [
+        // LeBron James stats
+        { player: 'LeBron James', team: 'team1', type: 'FG Made', timestamp: 30, formattedTime: '0:30', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'FG Made', timestamp: 45, formattedTime: '0:45', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'FG Made', timestamp: 60, formattedTime: '1:00', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'FG Made', timestamp: 75, formattedTime: '1:15', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: '3PT Made', timestamp: 90, formattedTime: '1:30', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: '3PT Missed', timestamp: 105, formattedTime: '1:45', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'FT Made', timestamp: 120, formattedTime: '2:00', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'FT Made', timestamp: 125, formattedTime: '2:05', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'Rebound', timestamp: 140, formattedTime: '2:20', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'Rebound', timestamp: 155, formattedTime: '2:35', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'Rebound', timestamp: 170, formattedTime: '2:50', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'Assist', timestamp: 185, formattedTime: '3:05', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'Assist', timestamp: 200, formattedTime: '3:20', uniquePlayerId: 'team1|LeBron James' },
+        { player: 'LeBron James', team: 'team1', type: 'Assist', timestamp: 215, formattedTime: '3:35', uniquePlayerId: 'team1|LeBron James' },
+        
+        // Stephen Curry stats
+        { player: 'Stephen Curry', team: 'team2', type: 'FG Made', timestamp: 35, formattedTime: '0:35', uniquePlayerId: 'team2|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team2', type: '3PT Made', timestamp: 50, formattedTime: '0:50', uniquePlayerId: 'team2|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team2', type: '3PT Made', timestamp: 65, formattedTime: '1:05', uniquePlayerId: 'team2|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team2', type: '3PT Made', timestamp: 80, formattedTime: '1:20', uniquePlayerId: 'team2|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team2', type: '3PT Made', timestamp: 95, formattedTime: '1:35', uniquePlayerId: 'team2|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team2', type: '3PT Made', timestamp: 110, formattedTime: '1:50', uniquePlayerId: 'team2|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team2', type: '3PT Made', timestamp: 125, formattedTime: '2:05', uniquePlayerId: 'team2|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team2', type: '3PT Missed', timestamp: 140, formattedTime: '2:20', uniquePlayerId: 'team2|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team2', type: '3PT Missed', timestamp: 155, formattedTime: '2:35', uniquePlayerId: 'team2|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team2', type: 'Rebound', timestamp: 170, formattedTime: '2:50', uniquePlayerId: 'team2|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team2', type: 'Assist', timestamp: 185, formattedTime: '3:05', uniquePlayerId: 'team2|Stephen Curry' },
+        { player: 'Stephen Curry', team: 'team2', type: 'Steal', timestamp: 190, formattedTime: '3:10', uniquePlayerId: 'team2|Stephen Curry' }
+      ]
+    },
+    {
+      id: 'demo-game-3',
+      videoId: 'dQw4w9WgXcQ',
+      videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      title: 'Rookie Showdown: Wembanyama vs Ball',
+      createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days ago
+      teams: {
+        team1: {
+          name: 'Spurs',
+          players: ['Victor Wembanyama', 'Keldon Johnson', 'Devin Vassell']
+        },
+        team2: {
+          name: 'Hornets',
+          players: ['LaMelo Ball', 'Miles Bridges', 'P.J. Washington']
+        }
+      },
+      stats: [
+        // Victor Wembanyama stats
+        { player: 'Victor Wembanyama', team: 'team1', type: 'FG Made', timestamp: 30, formattedTime: '0:30', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: 'FG Made', timestamp: 45, formattedTime: '0:45', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: 'FG Made', timestamp: 60, formattedTime: '1:00', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: 'FG Made', timestamp: 75, formattedTime: '1:15', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: '3PT Made', timestamp: 90, formattedTime: '1:30', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: 'FG Missed', timestamp: 105, formattedTime: '1:45', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: 'FT Made', timestamp: 120, formattedTime: '2:00', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: 'FT Made', timestamp: 125, formattedTime: '2:05', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: 'Rebound', timestamp: 140, formattedTime: '2:20', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: 'Rebound', timestamp: 155, formattedTime: '2:35', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: 'Rebound', timestamp: 170, formattedTime: '2:50', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: 'Rebound', timestamp: 185, formattedTime: '3:05', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: 'Block', timestamp: 200, formattedTime: '3:20', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: 'Block', timestamp: 215, formattedTime: '3:35', uniquePlayerId: 'team1|Victor Wembanyama' },
+        { player: 'Victor Wembanyama', team: 'team1', type: 'Block', timestamp: 230, formattedTime: '3:50', uniquePlayerId: 'team1|Victor Wembanyama' },
+        
+        // LaMelo Ball stats
+        { player: 'LaMelo Ball', team: 'team2', type: 'FG Made', timestamp: 35, formattedTime: '0:35', uniquePlayerId: 'team2|LaMelo Ball' },
+        { player: 'LaMelo Ball', team: 'team2', type: 'FG Made', timestamp: 50, formattedTime: '0:50', uniquePlayerId: 'team2|LaMelo Ball' },
+        { player: 'LaMelo Ball', team: 'team2', type: '3PT Made', timestamp: 65, formattedTime: '1:05', uniquePlayerId: 'team2|LaMelo Ball' },
+        { player: 'LaMelo Ball', team: 'team2', type: '3PT Made', timestamp: 80, formattedTime: '1:20', uniquePlayerId: 'team2|LaMelo Ball' },
+        { player: 'LaMelo Ball', team: 'team2', type: '3PT Made', timestamp: 95, formattedTime: '1:35', uniquePlayerId: 'team2|LaMelo Ball' },
+        { player: 'LaMelo Ball', team: 'team2', type: '3PT Missed', timestamp: 110, formattedTime: '1:50', uniquePlayerId: 'team2|LaMelo Ball' },
+        { player: 'LaMelo Ball', team: 'team2', type: 'FT Made', timestamp: 125, formattedTime: '2:05', uniquePlayerId: 'team2|LaMelo Ball' },
+        { player: 'LaMelo Ball', team: 'team2', type: 'Assist', timestamp: 140, formattedTime: '2:20', uniquePlayerId: 'team2|LaMelo Ball' },
+        { player: 'LaMelo Ball', team: 'team2', type: 'Assist', timestamp: 155, formattedTime: '2:35', uniquePlayerId: 'team2|LaMelo Ball' },
+        { player: 'LaMelo Ball', team: 'team2', type: 'Assist', timestamp: 170, formattedTime: '2:50', uniquePlayerId: 'team2|LaMelo Ball' },
+        { player: 'LaMelo Ball', team: 'team2', type: 'Assist', timestamp: 185, formattedTime: '3:05', uniquePlayerId: 'team2|LaMelo Ball' },
+        { player: 'LaMelo Ball', team: 'team2', type: 'Assist', timestamp: 200, formattedTime: '3:20', uniquePlayerId: 'team2|LaMelo Ball' },
+        { player: 'LaMelo Ball', team: 'team2', type: 'Steal', timestamp: 215, formattedTime: '3:35', uniquePlayerId: 'team2|LaMelo Ball' },
+        { player: 'LaMelo Ball', team: 'team2', type: 'Steal', timestamp: 230, formattedTime: '3:50', uniquePlayerId: 'team2|LaMelo Ball' }
+      ]
+    }
+  ];
+
   useEffect(() => {
     const fetchSavedGames = async () => {
       if (!currentUser) {
+        // If no user is logged in, use the demo games
+        setGames(demoGames);
         setLoading(false);
         return;
       }
@@ -41,8 +207,8 @@ const SavedGames = ({ setCurrentPage }) => {
       } catch (error) {
         console.error('Error fetching saved games:', error);
         toast.error(`Failed to load saved games: ${error.message}`);
-        // Set empty games array to avoid showing stale data
-        setGames([]);
+        // Set demo games if there's an error fetching from API
+        setGames(demoGames);
       } finally {
         setLoading(false);
       }
@@ -188,14 +354,20 @@ const SavedGames = ({ setCurrentPage }) => {
   // Handle continue watching a game
   const continueWatching = (game) => {
     try {
-      // Save the game data to localStorage so the YouTube component can access it
-      localStorage.setItem('continue-game', JSON.stringify({
+      // Ensure the game has all required properties, with fallbacks for demo games
+      const gameData = {
         videoId: game.videoId,
-        videoUrl: game.videoUrl,
-        title: game.title,
-        teams: game.teams,
-        stats: game.stats
-      }));
+        videoUrl: game.videoUrl || `https://www.youtube.com/watch?v=${game.videoId}`,
+        title: game.title || 'Basketball Game',
+        teams: game.teams || {
+          team1: { name: 'Team 1', players: [] },
+          team2: { name: 'Team 2', players: [] }
+        },
+        stats: game.stats || []
+      };
+      
+      // Save the game data to localStorage so the YouTube component can access it
+      localStorage.setItem('continue-game', JSON.stringify(gameData));
       
       // Navigate to the YouTube component
       toast.info(`Opening video: ${game.title}`);
@@ -285,7 +457,7 @@ const SavedGames = ({ setCurrentPage }) => {
               Review and analyze statistics from your previously tracked basketball games
             </p>
             
-            {currentUser && !loading && games.length > 0 && (
+            {(currentUser || (!currentUser && games.length > 0)) && !loading && games.length > 0 && (
               <div className="mt-8 bg-base-100/80 backdrop-blur-sm p-1 rounded-full border border-base-200 shadow-sm flex gap-1">
                 <button 
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${filterOption === 'all' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200'}`}
@@ -312,8 +484,41 @@ const SavedGames = ({ setCurrentPage }) => {
       </section>
       
       <div className="max-w-7xl mx-auto px-6 pb-20">
-        {/* Not Logged In Message */}
-        {!currentUser && (
+        {/* Not Logged In Message with Demo Games */}
+        {!currentUser && games.length > 0 && (
+          <div className="mb-10">
+            <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-200">
+              <div className="text-center py-8 px-6">
+                <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold mb-2">Demo Mode</h2>
+                <p className="mb-6 opacity-70 max-w-md mx-auto">
+                  You're viewing demo games. Sign in to save your own games and statistics.
+                </p>
+                <div className="flex flex-wrap justify-center gap-4">
+                  <button 
+                    className="btn btn-primary btn-sm min-w-40 shadow-md"
+                    onClick={() => setCurrentPage('login')}
+                  >
+                    Sign In
+                  </button>
+                  <button 
+                    className="btn btn-outline btn-sm min-w-40 border-2"
+                    onClick={() => setCurrentPage('register')}
+                  >
+                    Create Account
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Original not logged in message - only show if no demo games are set */}
+        {!currentUser && games.length === 0 && (
           <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-200">
             <div className="text-center py-16 px-6">
               <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-6">
@@ -344,14 +549,14 @@ const SavedGames = ({ setCurrentPage }) => {
         )}
         
         {/* Loading State */}
-        {currentUser && loading && (
+        {loading && (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="loading loading-spinner loading-lg text-primary mb-4"></div>
             <p className="text-base-content/60 animate-pulse">Loading your saved games...</p>
           </div>
         )}
         
-        {/* No Games Saved Message */}
+        {/* No Games Saved Message - only show for logged in users */}
         {currentUser && !loading && games.length === 0 && (
           <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-200">
             <div className="text-center py-16 px-6">
@@ -378,18 +583,19 @@ const SavedGames = ({ setCurrentPage }) => {
           </div>
         )}
         
-        {/* Games Grid */}
-        {currentUser && !loading && games.length > 0 && (
+        {/* Games Grid - show for both logged in users and non-logged in with demo games */}
+        {!loading && games.length > 0 && (
           <div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {getFilteredGames().map(game => {
                 const { totalPoints, totalStats } = getGameSummary(game);
+                const gameId = game.id || game._id || `demo-${game.title.replace(/\s+/g, '-').toLowerCase()}`;
                 
                 return (
                   <div 
-                    key={game.id || game._id}
+                    key={gameId}
                     className="card bg-base-100 hover:shadow-xl transition-all duration-300 border border-base-200 cursor-pointer group overflow-hidden"
-                    onClick={() => setExpandedGame(expandedGame === game.id ? null : game.id)}
+                    onClick={() => setExpandedGame(expandedGame === gameId ? null : gameId)}
                   >
                     {/* YouTube Thumbnail */}
                     <figure className="relative h-48 overflow-hidden">
@@ -422,14 +628,16 @@ const SavedGames = ({ setCurrentPage }) => {
                           {game.title}
                         </h3>
                         
-                        <button 
-                          className="btn btn-square btn-ghost btn-sm text-error"
-                          onClick={(e) => deleteGame(game, e)}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                        {currentUser && (
+                          <button 
+                            className="btn btn-square btn-ghost btn-sm text-error"
+                            onClick={(e) => deleteGame(game, e)}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
                       </div>
                       
                       <div className="text-sm opacity-70 mb-3">
@@ -461,7 +669,7 @@ const SavedGames = ({ setCurrentPage }) => {
                     </div>
                     
                     {/* Expandable section with player stats */}
-                    {expandedGame === game.id && (
+                    {expandedGame === gameId && (
                       <div className="border-t border-base-200 p-5 bg-base-200/30">
                         <h4 className="font-medium mb-3">Player Statistics</h4>
                         <div className="overflow-x-auto">
