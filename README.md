@@ -1,3 +1,6 @@
+This project is licensed under the MIT License.
+LIVE ON : [https://hoopinsights.vercel.app/](https://hoopinsights.vercel.app/) 
+
 # HoopInsights - Basketball Stats Tracker
 
 HoopInsights is a web application for tracking basketball statistics while watching YouTube videos. It allows users to record player statistics in real-time, save games for later analysis, and review detailed performance metrics.
@@ -68,4 +71,3 @@ The backend is connected to a MongoDB database and runs on the same Vercel deplo
 
 ## License
 
-This project is licensed under the MIT License.
