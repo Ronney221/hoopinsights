@@ -8,6 +8,7 @@ const SavedGames = ({ setCurrentPage }) => {
   const [loading, setLoading] = useState(true);
   const [selectedGame, setSelectedGame] = useState(null);
   const [expandedGame, setExpandedGame] = useState(null);
+  const [filterOption, setFilterOption] = useState('all');
 
   useEffect(() => {
     const fetchSavedGames = async () => {
@@ -34,6 +35,8 @@ const SavedGames = ({ setCurrentPage }) => {
         }
         
         const savedGames = await response.json();
+        // Sort games by creation date (newest first)
+        savedGames.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         setGames(savedGames);
       } catch (error) {
         console.error('Error fetching saved games:', error);
@@ -54,13 +57,32 @@ const SavedGames = ({ setCurrentPage }) => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
+  // Helper function to format time
+  const formatTime = (dateString) => {
+    const options = { hour: '2-digit', minute: '2-digit' };
+    return new Date(dateString).toLocaleTimeString(undefined, options);
+  };
+
   // Helper function to get player statistics
-  const getPlayerStats = (playerName, gameStats) => {
+  const getPlayerStats = (playerName, gameStats, teamInfo = null) => {
+    // Find which team this player belongs to
+    let teamName = '';
+    if (teamInfo) {
+      Object.entries(teamInfo).forEach(([teamKey, team]) => {
+        if (team.players.includes(playerName)) {
+          teamName = team.name;
+        }
+      });
+    }
+    
     const playerStats = {
       name: playerName,
+      teamName,
       points: 0,
       fgMade: 0,
       fgAttempts: 0,
+      twoPtMade: 0,
+      twoPtAttempts: 0,
       threePtMade: 0,
       threePtAttempts: 0,
       ftMade: 0, 
@@ -70,7 +92,11 @@ const SavedGames = ({ setCurrentPage }) => {
       steals: 0,
       blocks: 0,
       turnovers: 0,
-      fouls: 0
+      fouls: 0,
+      fgPercentage: 0,
+      twoPtPercentage: 0,
+      threePtPercentage: 0,
+      ftPercentage: 0
     };
     
     gameStats.forEach(stat => {
@@ -80,17 +106,25 @@ const SavedGames = ({ setCurrentPage }) => {
             playerStats.points += 2;
             playerStats.fgMade += 1;
             playerStats.fgAttempts += 1;
+            playerStats.twoPtMade += 1;
+            playerStats.twoPtAttempts += 1;
             break;
           case 'FG Missed':
             playerStats.fgAttempts += 1;
+            playerStats.twoPtAttempts += 1;
             break;
           case '3PT Made':
             playerStats.points += 3;
             playerStats.threePtMade += 1;
             playerStats.threePtAttempts += 1;
+            // Count 3PT attempts as FG attempts
+            playerStats.fgMade += 1;
+            playerStats.fgAttempts += 1;
             break;
           case '3PT Missed':
             playerStats.threePtAttempts += 1;
+            // Count 3PT attempts as FG attempts
+            playerStats.fgAttempts += 1;
             break;
           case 'FT Made':
             playerStats.points += 1;
@@ -122,6 +156,23 @@ const SavedGames = ({ setCurrentPage }) => {
       }
     });
     
+    // Calculate percentages
+    playerStats.fgPercentage = playerStats.fgAttempts > 0 
+      ? Number((playerStats.fgMade / playerStats.fgAttempts * 100).toFixed(1)) 
+      : 0;
+    
+    playerStats.twoPtPercentage = playerStats.twoPtAttempts > 0 
+      ? Number((playerStats.twoPtMade / playerStats.twoPtAttempts * 100).toFixed(1)) 
+      : 0;
+    
+    playerStats.threePtPercentage = playerStats.threePtAttempts > 0 
+      ? Number((playerStats.threePtMade / playerStats.threePtAttempts * 100).toFixed(1)) 
+      : 0;
+    
+    playerStats.ftPercentage = playerStats.ftAttempts > 0 
+      ? Number((playerStats.ftMade / playerStats.ftAttempts * 100).toFixed(1)) 
+      : 0;
+    
     return playerStats;
   };
 
@@ -131,7 +182,7 @@ const SavedGames = ({ setCurrentPage }) => {
     
     // Get unique players from stats
     const playerNames = [...new Set(game.stats.map(stat => stat.player))];
-    return playerNames.map(name => getPlayerStats(name, game.stats));
+    return playerNames.map(name => getPlayerStats(name, game.stats, game.teams));
   };
 
   // Handle continue watching a game
@@ -184,42 +235,108 @@ const SavedGames = ({ setCurrentPage }) => {
     }
   };
 
+  // Get filtered games based on selected option
+  const getFilteredGames = () => {
+    if (filterOption === 'all') return games;
+    
+    const currentDate = new Date();
+    if (filterOption === 'recent') {
+      // Games from the last 7 days
+      const weekAgo = new Date(currentDate);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return games.filter(game => new Date(game.createdAt) >= weekAgo);
+    }
+    if (filterOption === 'month') {
+      // Games from the current month
+      return games.filter(game => {
+        const gameDate = new Date(game.createdAt);
+        return gameDate.getMonth() === currentDate.getMonth() && 
+               gameDate.getFullYear() === currentDate.getFullYear();
+      });
+    }
+    return games;
+  };
+
+  // Calculate game statistics
+  const getGameSummary = (game) => {
+    if (!game || !game.stats) return { totalPoints: 0, totalStats: 0 };
+    
+    const players = getPlayersWithStats(game);
+    const totalPoints = players.reduce((sum, player) => sum + player.points, 0);
+    const totalStats = game.stats.length;
+    
+    return { totalPoints, totalStats };
+  };
+
   return (
-    <div className="min-h-screen pt-24 pb-12">
-      <div className="max-w-7xl mx-auto px-6">
-        {/* Hero Section */}
-        <div className="text-center mb-10">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Saved Games
-          </h1>
-          <p className="text-lg md:text-xl opacity-80 max-w-2xl mx-auto mb-8">
-            View and analyze your previously tracked basketball games
-          </p>
-        </div>
+    <div className="min-h-screen">
+      {/* Hero Section with Visual Appeal */}
+      <section className="relative pt-28 pb-16 overflow-hidden pt-96">
+        {/* Decorative elements */}
+        <div className="absolute top-0 -right-64 w-[60rem] h-[60rem] bg-primary/5 rounded-full blur-3xl -z-10"></div>
+        <div className="absolute -bottom-96 -left-64 w-[60rem] h-[60rem] bg-secondary/5 rounded-full blur-3xl -z-10"></div>
         
-        {/* Not Logged In Message */}
-        {!currentUser && (
-          <div className="card bg-base-100 shadow-xl p-6">
-            <div className="text-center py-8">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-primary opacity-50 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              <h2 className="text-2xl font-bold mb-2">Login Required</h2>
-              <p className="mb-6 opacity-70 max-w-md mx-auto">
-                You need to be logged in to view your saved games.
-              </p>
-              <div className="flex justify-center gap-4">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex flex-col items-center text-center mb-12">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              Your Saved Games
+            </h1>
+            <p className="text-lg opacity-80 max-w-2xl mx-auto">
+              Review and analyze statistics from your previously tracked basketball games
+            </p>
+            
+            {currentUser && !loading && games.length > 0 && (
+              <div className="mt-8 bg-base-100/80 backdrop-blur-sm p-1 rounded-full border border-base-200 shadow-sm flex gap-1">
                 <button 
-                  className="btn btn-primary"
-                  onClick={() => setCurrentPage('login')}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${filterOption === 'all' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200'}`}
+                  onClick={() => setFilterOption('all')}
                 >
-                  Login
+                  All Games
                 </button>
                 <button 
-                  className="btn btn-outline"
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${filterOption === 'recent' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200'}`}
+                  onClick={() => setFilterOption('recent')}
+                >
+                  Last 7 Days
+                </button>
+                <button 
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${filterOption === 'month' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200'}`}
+                  onClick={() => setFilterOption('month')}
+                >
+                  This Month
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+      
+      <div className="max-w-7xl mx-auto px-6 pb-20">
+        {/* Not Logged In Message */}
+        {!currentUser && (
+          <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-200">
+            <div className="text-center py-16 px-6">
+              <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold mb-3">Sign in to Access Your Games</h2>
+              <p className="mb-8 opacity-70 max-w-md mx-auto">
+                Create an account or sign in to view your saved basketball games and statistics.
+              </p>
+              <div className="flex flex-wrap justify-center gap-4">
+                <button 
+                  className="btn btn-primary min-w-40 shadow-md"
+                  onClick={() => setCurrentPage('login')}
+                >
+                  Sign In
+                </button>
+                <button 
+                  className="btn btn-outline min-w-40 border-2"
                   onClick={() => setCurrentPage('register')}
                 >
-                  Register
+                  Create Account
                 </button>
               </div>
             </div>
@@ -228,126 +345,201 @@ const SavedGames = ({ setCurrentPage }) => {
         
         {/* Loading State */}
         {currentUser && loading && (
-          <div className="flex justify-center items-center py-16">
-            <div className="loading loading-spinner loading-lg text-primary"></div>
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="loading loading-spinner loading-lg text-primary mb-4"></div>
+            <p className="text-base-content/60 animate-pulse">Loading your saved games...</p>
           </div>
         )}
         
         {/* No Games Saved Message */}
         {currentUser && !loading && games.length === 0 && (
-          <div className="card bg-base-100 shadow-xl p-6">
-            <div className="text-center py-8">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-primary opacity-50 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-              <h2 className="text-2xl font-bold mb-2">No Saved Games</h2>
-              <p className="mb-6 opacity-70 max-w-md mx-auto">
-                You haven't saved any games yet. Start tracking stats by watching a YouTube video.
+          <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-200">
+            <div className="text-center py-16 px-6">
+              <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold mb-3">No Saved Games Yet</h2>
+              <p className="mb-8 opacity-70 max-w-md mx-auto">
+                Start tracking basketball stats by watching a YouTube video and recording player statistics.
               </p>
               <button 
-                className="btn btn-primary"
+                className="btn btn-primary min-w-56 shadow-md"
                 onClick={() => setCurrentPage('youtube')}
               >
-                Track a Game
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Track Game Stats
               </button>
             </div>
           </div>
         )}
         
-        {/* Saved Games List */}
+        {/* Games Grid */}
         {currentUser && !loading && games.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-            {games.map(game => (
-              <div 
-                key={game.id}
-                className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all cursor-pointer"
-                onClick={() => setExpandedGame(expandedGame === game.id ? null : game.id)}
-              >
-                <div className="card-body">
-                  <div className="flex justify-between items-start">
-                    <h2 className="card-title">{game.title}</h2>
-                    <button 
-                      className="btn btn-square btn-ghost btn-sm"
-                      onClick={(e) => deleteGame(game, e)}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                  
-                  <p className="text-sm opacity-70">Saved on {formatDate(game.createdAt)}</p>
-                  
-                  <div className="flex justify-between items-center mt-2">
-                    <div className="badge badge-primary">{game.teams.team1.name}</div>
-                    <div className="text-xs">vs</div>
-                    <div className="badge badge-secondary">{game.teams.team2.name}</div>
-                  </div>
-                  
-                  <div className="text-sm mt-2">
-                    <span className="font-medium">{game.stats.length}</span> stats recorded
-                  </div>
-                  
-                  {/* Expanded Game Details */}
-                  {expandedGame === game.id && (
-                    <div className="mt-4 border-t pt-4">
-                      <h3 className="font-bold text-lg mb-3">Player Statistics</h3>
+          <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {getFilteredGames().map(game => {
+                const { totalPoints, totalStats } = getGameSummary(game);
+                
+                return (
+                  <div 
+                    key={game.id || game._id}
+                    className="card bg-base-100 hover:shadow-xl transition-all duration-300 border border-base-200 cursor-pointer group overflow-hidden"
+                    onClick={() => setExpandedGame(expandedGame === game.id ? null : game.id)}
+                  >
+                    {/* YouTube Thumbnail */}
+                    <figure className="relative h-48 overflow-hidden">
+                      <img 
+                        src={`https://img.youtube.com/vi/${game.videoId}/mqdefault.jpg`} 
+                        alt={game.title}
+                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                      />
                       
-                      <div className="overflow-x-auto">
-                        <table className="table table-zebra table-sm w-full">
-                          <thead>
-                            <tr>
-                              <th>Player</th>
-                              <th>PTS</th>
-                              <th>REB</th>
-                              <th>AST</th>
-                              <th>STL</th>
-                              <th>BLK</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {getPlayersWithStats(game).map(playerStat => (
-                              <tr key={playerStat.name}>
-                                <td className="font-medium">{playerStat.name}</td>
-                                <td>{playerStat.points}</td>
-                                <td>{playerStat.rebounds}</td>
-                                <td>{playerStat.assists}</td>
-                                <td>{playerStat.steals}</td>
-                                <td>{playerStat.blocks}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                      {/* Overlay gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-base-100 via-transparent to-transparent opacity-70"></div>
+                      
+                      {/* Play button */}
+                      <button
+                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-primary/90 text-primary-content flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          continueWatching(game);
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        </svg>
+                      </button>
+                    </figure>
+                    
+                    <div className="card-body p-5">
+                      <div className="flex justify-between items-start">
+                        <h3 className="card-title text-lg font-medium line-clamp-2 mb-1">
+                          {game.title}
+                        </h3>
+                        
+                        <button 
+                          className="btn btn-square btn-ghost btn-sm text-error"
+                          onClick={(e) => deleteGame(game, e)}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                      
+                      <div className="text-sm opacity-70 mb-3">
+                        Saved on {formatDate(game.createdAt)} at {formatTime(game.createdAt)}
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-base-200/50 rounded-lg p-2 text-center">
+                          <div className="text-xl font-bold text-primary">{totalPoints}</div>
+                          <div className="text-xs opacity-70">Total Points</div>
+                        </div>
+                        <div className="bg-base-200/50 rounded-lg p-2 text-center">
+                          <div className="text-xl font-bold text-secondary">{totalStats}</div>
+                          <div className="text-xs opacity-70">Stats Recorded</div>
+                        </div>
                       </div>
                       
                       <div className="card-actions justify-end mt-4">
                         <button 
-                          className="btn btn-primary"
-                          onClick={() => continueWatching(game)}
+                          className="btn btn-primary btn-sm flex-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            continueWatching(game);
+                          }}
                         >
-                          Continue Watching
+                          Continue Tracking
                         </button>
                       </div>
                     </div>
-                  )}
+                    
+                    {/* Expandable section with player stats */}
+                    {expandedGame === game.id && (
+                      <div className="border-t border-base-200 p-5 bg-base-200/30">
+                        <h4 className="font-medium mb-3">Player Statistics</h4>
+                        <div className="overflow-x-auto">
+                          <table className="table table-xs table-zebra w-full">
+                            <thead>
+                              <tr>
+                                <th>Player</th>
+                                <th>Team</th>
+                                <th>PTS</th>
+                                <th>FG%</th>
+                                <th>3P%</th>
+                                <th>REB</th>
+                                <th>AST</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {getPlayersWithStats(game).map(player => (
+                                <tr key={player.name}>
+                                  <td className="font-medium">{player.name}</td>
+                                  <td>{player.teamName}</td>
+                                  <td>{player.points}</td>
+                                  <td>{player.fgPercentage}%</td>
+                                  <td>{player.threePtPercentage}%</td>
+                                  <td>{player.rebounds}</td>
+                                  <td>{player.assists}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <button 
+                          className="btn btn-outline btn-xs mt-4"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            continueWatching(game);
+                          }}
+                        >
+                          View Full Stats
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            
+            {getFilteredGames().length === 0 && games.length > 0 && (
+              <div className="text-center py-10">
+                <div className="w-16 h-16 mx-auto rounded-full bg-base-200 flex items-center justify-center mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
                 </div>
+                <h3 className="text-xl font-medium mb-2">No games in this time period</h3>
+                <p className="opacity-70 mb-4">Try selecting a different filter option</p>
+                <button 
+                  className="btn btn-sm btn-outline"
+                  onClick={() => setFilterOption('all')}
+                >
+                  Show All Games
+                </button>
               </div>
-            ))}
+            )}
+            
+            {/* Track New Game Button */}
+            <div className="flex justify-center mt-10">
+              <button 
+                className="btn btn-primary"
+                onClick={() => setCurrentPage('youtube')}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Track New Game
+              </button>
+            </div>
           </div>
         )}
-        
-        {/* Back Button */}
-        <div className="flex justify-center mt-8">
-          <button 
-            onClick={() => setCurrentPage('home')}
-            className="btn btn-outline btn-sm rounded-xl"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back to Home
-          </button>
-        </div>
       </div>
     </div>
   );

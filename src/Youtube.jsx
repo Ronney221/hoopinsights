@@ -616,7 +616,7 @@ const Youtube = ({ setCurrentPage }) => {
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-12">
+    <div className="min-h-screen pt-96 pb-12">
       <div className="max-w-[75%] mx-auto px-6">
         {/* Hero Section */}
         <div className="text-center mb-10">

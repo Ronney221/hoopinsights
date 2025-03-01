@@ -7,7 +7,7 @@ const Home = ({ setCurrentPage }) => {
   return (
     <div className="min-h-screen">
       {/* Hero Section with Visual Appeal */}
-      <section className="relative pt-32 pb-24 overflow-hidden">
+      <section className="relative pt-96 pb-64 overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute top-0 -right-64 w-[80rem] h-[80rem] bg-primary/5 rounded-full blur-3xl -z-10"></div>
         <div className="absolute -bottom-96 -left-64 w-[80rem] h-[80rem] bg-secondary/5 rounded-full blur-3xl -z-10"></div>
@@ -138,7 +138,7 @@ const Home = ({ setCurrentPage }) => {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-24 relative">
+      <section className="py-24 relative pb-64">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">How It Works</h2>
@@ -186,22 +186,7 @@ const Home = ({ setCurrentPage }) => {
         </div>
       </section>
       
-      {/* Call to Action */}
-      <section className="py-24 bg-gradient-to-r from-primary/10 to-secondary/10">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to transform your basketball analysis?</h2>
-          <p className="text-lg opacity-80 mb-10 max-w-2xl mx-auto">
-            Join our community of coaches and basketball enthusiasts who use HoopInsights to unlock deeper game insights
-          </p>
-          
-          <button 
-            onClick={() => setCurrentPage(currentUser ? 'youtube' : 'register')}
-            className="btn btn-primary btn-lg normal-case font-medium px-12 shadow-lg hover:shadow-primary/20 hover:scale-105 transition-all"
-          >
-            Get Started Now
-          </button>
-        </div>
-      </section>
+
     </div>
   );
 };

@@ -16,7 +16,7 @@ const Footer = () => {
                 HoopInsights
               </h3>
               <p className="text-sm opacity-70 max-w-sm leading-relaxed">
-                Transform your basketball analysis with AI-powered insights. Make data-driven decisions and improve your game with advanced analytics.
+                Transform your basketball analysis. Make data-driven decisions and improve your game with advanced analytics.
               </p>
               
               {/* Newsletter Signup */}
@@ -24,7 +24,7 @@ const Footer = () => {
                 <p className="text-sm font-medium mb-2">Join our newsletter</p>
                 <div className="join">
                   <input className="input input-sm join-item input-bordered w-full max-w-xs" placeholder="Your email address"/>
-                  <button className="btn btn-sm btn-primary join-item">Subscribe</button>
+                  <button className="btn btn-sm btn-primary join-item" disabled>Subscribe</button>
                 </div>
               </div>
             </div>
@@ -50,7 +50,7 @@ const Footer = () => {
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="flex items-center text-sm hover:text-primary transition-colors py-1 group">
+                  <a href="#" className="flex items-center text-sm hover:text-primary transition-colors py-1 group" disabled>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
                     </svg>
@@ -58,7 +58,7 @@ const Footer = () => {
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="flex items-center text-sm hover:text-primary transition-colors py-1 group">
+                  <a href="#" className="flex items-center text-sm hover:text-primary transition-colors py-1 group" disabled>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -66,7 +66,7 @@ const Footer = () => {
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="flex items-center text-sm hover:text-primary transition-colors py-1 group">
+                  <a href="#" className="flex items-center text-sm hover:text-primary transition-colors py-1 group" disabled>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
@@ -74,7 +74,7 @@ const Footer = () => {
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="flex items-center text-sm hover:text-primary transition-colors py-1 group">
+                  <a href="#" className="flex items-center text-sm hover:text-primary transition-colors py-1 group" disabled>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -102,7 +102,7 @@ const Footer = () => {
                   <p className="text-xs opacity-70">Full Stack Developer</p>
                   <div className="flex items-center gap-1 mt-1">
                     <div className="badge badge-xs badge-primary"></div>
-                    <span className="text-xs">Available for hire</span>
+                    <a href="https://docs.google.com/document/d/1LrOxb1h5nHf0gbXTiCUulH64IVjJRTscKFopmrgyouE/edit?usp=sharing" className="text-xs hover:text-primary transition-colors">Available for hire</a>
                   </div>
                 </div>
               </div>
