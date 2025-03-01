@@ -443,7 +443,7 @@ const SavedGames = ({ setCurrentPage }) => {
   return (
     <div className="min-h-screen">
       {/* Hero Section with Visual Appeal */}
-      <section className="relative pt-28 pb-16 overflow-hidden pt-96">
+      <section className="relative pb-16 overflow-hidden pt-36">
         {/* Decorative elements */}
         <div className="absolute top-0 -right-64 w-[60rem] h-[60rem] bg-primary/5 rounded-full blur-3xl -z-10"></div>
         <div className="absolute -bottom-96 -left-64 w-[60rem] h-[60rem] bg-secondary/5 rounded-full blur-3xl -z-10"></div>
@@ -483,7 +483,7 @@ const SavedGames = ({ setCurrentPage }) => {
         </div>
       </section>
       
-      <div className="max-w-7xl mx-auto px-6 pb-20">
+      <div className="max-w-7xl mx-auto px-6 pb-20 pt-20">
         {/* Not Logged In Message with Demo Games */}
         {!currentUser && games.length > 0 && (
           <div className="mb-10">
@@ -519,7 +519,7 @@ const SavedGames = ({ setCurrentPage }) => {
         
         {/* Original not logged in message - only show if no demo games are set */}
         {!currentUser && games.length === 0 && (
-          <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-200">
+          <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-200 pt-20">
             <div className="text-center py-16 px-6">
               <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-6">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -558,7 +558,7 @@ const SavedGames = ({ setCurrentPage }) => {
         
         {/* No Games Saved Message - only show for logged in users */}
         {currentUser && !loading && games.length === 0 && (
-          <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-200">
+          <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-200 pt-24">
             <div className="text-center py-16 px-6">
               <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-6">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -586,7 +586,7 @@ const SavedGames = ({ setCurrentPage }) => {
         {/* Games Grid - show for both logged in users and non-logged in with demo games */}
         {!loading && games.length > 0 && (
           <div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-24">
               {getFilteredGames().map(game => {
                 const { totalPoints, totalStats } = getGameSummary(game);
                 const gameId = game.id || game._id || `demo-${game.title.replace(/\s+/g, '-').toLowerCase()}`;
