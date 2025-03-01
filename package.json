@@ -10,7 +10,7 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "server": "nodemon server/server.js",
-    "vercel-build": "vite build"
+    "vercel-build": "cd server && npm install --omit=dev && cd .. && vite build"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

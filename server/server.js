@@ -20,29 +20,39 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? 'https://hoopinsights.vercel.app' 
-    : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175']
+  origin: '*', // Allow all origins in production for now
+  methods: ['GET', 'POST', 'DELETE', 'UPDATE', 'PUT', 'PATCH'],
+  credentials: true
 }));
+
 app.use(express.json());
 
 // MongoDB Connection with Mongoose
-let isConnected = false;
+let cachedDb = null;
+
 const connectToDatabase = async () => {
-  if (isConnected) {
-    return;
+  if (cachedDb) {
+    console.log('Using cached database connection');
+    return cachedDb;
   }
   
+  console.log('Creating new database connection');
+  
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    isConnected = true;
+    // Set mongoose connection options
+    const options = {
+      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+      socketTimeoutMS: 45000, // Close sockets after 45s
+    };
+    
+    await mongoose.connect(process.env.MONGODB_URI, options);
     console.log('Successfully connected to MongoDB.');
+    
+    cachedDb = mongoose.connection;
+    return cachedDb;
   } catch (error) {
     console.error('Error connecting to MongoDB:', error);
-    // Don't exit on Vercel - just log the error
-    if (process.env.NODE_ENV !== 'production') {
-      process.exit(1);
-    }
+    throw error; // Re-throw to be caught by the handler
   }
 };
 
@@ -50,6 +60,17 @@ const connectToDatabase = async () => {
 const userRoutes = require('./routes/users');
 const analysisRoutes = require('./routes/analysis');
 const statsRoutes = require('./routes/stats');
+
+// Connect to DB before handling routes for Vercel serverless functions
+app.use(async (req, res, next) => {
+  try {
+    await connectToDatabase();
+    next();
+  } catch (error) {
+    console.error('Database connection error:', error);
+    return res.status(500).json({ error: 'Database connection failed' });
+  }
+});
 
 app.use('/api/users', userRoutes);
 app.use('/api/analysis', analysisRoutes);
@@ -60,31 +81,34 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend is working!' });
 });
 
-// Error handling middleware
+// Error handling middleware - must be after all routes
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+  console.error('Server error:', err.stack);
+  
+  // Don't expose stack traces in production
+  const errorMessage = process.env.NODE_ENV === 'production' 
+    ? 'An internal server error occurred' 
+    : err.message;
+  
+  res.status(500).json({ error: errorMessage });
 });
 
 // For local development, start the server
 if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 5000;
+  
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
   
   // Handle cleanup on server shutdown
   process.on('SIGINT', async () => {
-    await mongoose.connection.close();
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.connection.close();
+    }
     process.exit(0);
   });
 }
-
-// Connect to the database when the function is invoked
-app.use(async (req, res, next) => {
-  await connectToDatabase();
-  next();
-});
 
 // Export for Vercel serverless functions
 module.exports = app; 

@@ -4,7 +4,6 @@ const videoSchema = new mongoose.Schema({
   youtubeId: {
     type: String,
     required: true,
-    unique: true,
     index: true
   },
   title: {
@@ -38,7 +37,8 @@ const videoSchema = new mongoose.Schema({
   },
   createdBy: {
     type: String, // Firebase UID
-    required: true
+    required: true,
+    index: true
   },
   createdAt: {
     type: Date,
@@ -46,7 +46,8 @@ const videoSchema = new mongoose.Schema({
   },
   updatedAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
+    index: true
   },
   isPublic: {
     type: Boolean,
@@ -54,6 +55,10 @@ const videoSchema = new mongoose.Schema({
   },
   collaborators: [String] // Array of Firebase UIDs
 });
+
+// Add compound index for faster user-specific video queries
+videoSchema.index({ youtubeId: 1, createdBy: 1 }, { unique: true });
+videoSchema.index({ createdBy: 1, updatedAt: -1 });
 
 // Update the updatedAt timestamp on save
 videoSchema.pre('save', function(next) {

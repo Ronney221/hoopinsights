@@ -44,16 +44,22 @@ const statSchema = new mongoose.Schema({
   formattedTime: String,
   createdBy: {
     type: String, // Firebase UID
-    required: true
+    required: true,
+    index: true
   },
   createdAt: {
     type: Date,
     default: Date.now
   }
+}, {
+  // Add timestamps option for better indexing
+  timestamps: true
 });
 
-// Compound index for more efficient querying
+// Compound indexes for more efficient querying
 statSchema.index({ videoId: 1, timestamp: 1 });
+statSchema.index({ videoId: 1, createdBy: 1 });
+statSchema.index({ videoId: 1, player: 1, team: 1 });
 
 const Stat = mongoose.model('Stat', statSchema);
 

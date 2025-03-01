@@ -152,12 +152,25 @@ router.delete('/:statId', authenticateUser, async (req, res) => {
 // Save a complete game with stats
 router.post('/saveGame', authenticateUser, async (req, res) => {
   try {
+    console.log(`[${req.user.uid}] Starting saveGame request`);
+    const startTime = Date.now();
+    
     const { title, videoId, videoUrl, teams, stats } = req.body;
     
     // Validate required fields
-    if (!videoId || !title || !teams || !stats || !stats.length) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!videoId || !title) {
+      return res.status(400).json({ error: 'Missing required fields: videoId and title are required' });
     }
+    
+    if (!stats || !Array.isArray(stats) || stats.length === 0) {
+      return res.status(400).json({ error: 'Stats must be a non-empty array' });
+    }
+    
+    if (!teams) {
+      return res.status(400).json({ error: 'Teams data is required' });
+    }
+
+    console.log(`[${req.user.uid}] Saving game: ${title} with ${stats.length} stats`);
 
     // First check if this video already exists
     let video = await Video.findOne({ 
@@ -171,6 +184,8 @@ router.post('/saveGame', authenticateUser, async (req, res) => {
         videoId: videoId,
         createdBy: req.user.uid
       });
+      
+      console.log(`[${req.user.uid}] Deleted existing stats for video ${videoId}`);
     }
     
     if (!video) {
@@ -191,33 +206,43 @@ router.post('/saveGame', authenticateUser, async (req, res) => {
     }
     
     await video.save();
+    console.log(`[${req.user.uid}] Saved video metadata for ${videoId}`);
     
-    // Save all new stats
-    const savedStats = [];
-    for (const stat of stats) {
-      const newStat = new Stat({
-        videoId,
-        type: stat.type,
-        value: stat.value || 1,
-        player: stat.player,
-        team: stat.team,
-        timestamp: stat.timestamp,
-        formattedTime: stat.formattedTime,
-        createdBy: req.user.uid
-      });
-      
-      const savedStat = await newStat.save();
-      savedStats.push(savedStat);
+    // Prepare batch insert of stats
+    const statsToInsert = stats.map(stat => ({
+      videoId,
+      type: stat.type,
+      value: stat.value || 1,
+      player: stat.player,
+      team: stat.team,
+      timestamp: stat.timestamp,
+      formattedTime: stat.formattedTime,
+      createdBy: req.user.uid
+    }));
+    
+    // Insert stats in batches to prevent timeout
+    const BATCH_SIZE = 100;
+    let savedCount = 0;
+    
+    for (let i = 0; i < statsToInsert.length; i += BATCH_SIZE) {
+      const batch = statsToInsert.slice(i, i + BATCH_SIZE);
+      await Stat.insertMany(batch);
+      savedCount += batch.length;
+      console.log(`[${req.user.uid}] Saved batch of ${batch.length} stats (${savedCount}/${statsToInsert.length})`);
     }
+    
+    const duration = Date.now() - startTime;
+    console.log(`[${req.user.uid}] Completed saveGame request in ${duration}ms`);
     
     res.status(201).json({
       message: 'Game saved successfully',
-      video,
-      stats: savedStats
+      videoId: videoId, 
+      title: title,
+      statsCount: savedCount
     });
   } catch (error) {
     console.error('Error saving game:', error);
-    res.status(500).json({ error: 'Failed to save game' });
+    res.status(500).json({ error: 'Failed to save game: ' + error.message });
   }
 });
 
@@ -260,37 +285,59 @@ router.delete('/deleteGame/:videoId', authenticateUser, async (req, res) => {
 // Get all saved games for the current user
 router.get('/savedGames', authenticateUser, async (req, res) => {
   try {
+    // Set a reasonable time limit for the query
+    const startTime = Date.now();
+    console.log(`[${req.user.uid}] Starting savedGames request`);
+    
     // Find all videos created by this user
     const videos = await Video.find({ createdBy: req.user.uid })
-      .sort({ updatedAt: -1 });
+      .sort({ updatedAt: -1 })
+      .lean();  // Use lean() for better performance
     
-    const savedGames = [];
-    
-    // For each video, fetch its stats
-    for (const video of videos) {
-      const stats = await Stat.find({ 
-        videoId: video.youtubeId,
-        createdBy: req.user.uid
-      }).sort({ timestamp: 1 });
-      
-      savedGames.push({
-        id: video._id,
-        title: video.title,
-        videoId: video.youtubeId,
-        videoUrl: `https://www.youtube.com/watch?v=${video.youtubeId}`,
-        createdAt: video.createdAt,
-        teams: video.teams,
-        stats: stats.map(stat => ({
-          id: stat._id,
-          type: stat.type,
-          value: stat.value,
-          player: stat.player,
-          team: stat.team,
-          timestamp: stat.timestamp,
-          formattedTime: stat.formattedTime
-        }))
-      });
+    if (videos.length === 0) {
+      console.log(`[${req.user.uid}] No saved games found`);
+      return res.json([]);
     }
+    
+    // Extract all videoIds for a single query
+    const videoIds = videos.map(video => video.youtubeId);
+    
+    // Get all stats in a single query
+    const allStats = await Stat.find({ 
+      videoId: { $in: videoIds },
+      createdBy: req.user.uid
+    }).lean();  // Use lean() for better performance
+    
+    // Group stats by videoId
+    const statsMap = {};
+    allStats.forEach(stat => {
+      if (!statsMap[stat.videoId]) {
+        statsMap[stat.videoId] = [];
+      }
+      statsMap[stat.videoId].push({
+        id: stat._id,
+        type: stat.type,
+        value: stat.value,
+        player: stat.player,
+        team: stat.team,
+        timestamp: stat.timestamp,
+        formattedTime: stat.formattedTime
+      });
+    });
+    
+    // Map videos with their stats
+    const savedGames = videos.map(video => ({
+      id: video._id,
+      title: video.title,
+      videoId: video.youtubeId,
+      videoUrl: `https://www.youtube.com/watch?v=${video.youtubeId}`,
+      createdAt: video.createdAt,
+      teams: video.teams,
+      stats: statsMap[video.youtubeId] || []
+    }));
+    
+    const duration = Date.now() - startTime;
+    console.log(`[${req.user.uid}] Completed savedGames request in ${duration}ms, found ${savedGames.length} games`);
     
     res.json(savedGames);
   } catch (error) {
