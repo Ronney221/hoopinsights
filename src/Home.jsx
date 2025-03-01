@@ -7,7 +7,7 @@ const Home = ({ setCurrentPage }) => {
   return (
     <div className="min-h-screen">
       {/* Hero Section with Visual Appeal */}
-      <section className="relative py-20 sm:py-28 md:py-32 lg:pt-40 lg:pb-28 overflow-hidden">
+      <section className="relative py-20 sm:py-28 md:py-32 lg:pt-80 lg:pb-28 overflow-hidden">
         {/* Responsive decorative elements */}
         <div className="absolute top-0 -right-64 w-full md:w-[60rem] lg:w-[80rem] h-[60rem] lg:h-[80rem] bg-primary/5 rounded-full blur-3xl -z-10 transform-gpu"></div>
         <div className="absolute -bottom-96 -left-64 w-full md:w-[60rem] lg:w-[80rem] h-[60rem] lg:h-[80rem] bg-secondary/5 rounded-full blur-3xl -z-10 transform-gpu"></div>
