@@ -3,24 +3,27 @@ import React from "react";
 const Footer = () => {
   return (
     <footer className="w-full font-sans mt-auto relative overflow-hidden">
-      {/* Subtle background accents */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/5 rounded-full blur-3xl"></div>
+      {/* Responsive decorative elements */}
+      <div className="absolute top-0 right-0 w-60 sm:w-80 md:w-96 h-60 sm:h-80 md:h-96 bg-primary/5 rounded-full blur-3xl transform-gpu"></div>
+      <div className="absolute bottom-0 left-0 w-60 sm:w-80 md:w-96 h-60 sm:h-80 md:h-96 bg-secondary/5 rounded-full blur-3xl transform-gpu"></div>
       
-      <div className="relative bg-gradient-to-r from-primary/5 via-transparent to-secondary/5 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 py-10">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+      <div className="relative animated-gradient bg-gradient-to-r from-primary/5 via-transparent to-secondary/5 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-12">
             {/* Brand Section */}
-            <div className="flex flex-col space-y-5">
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                HoopInsights
-              </h3>
+            <div className="flex flex-col space-y-4 sm:space-y-5 animate-fadeIn">
+              <div className="relative inline-block">
+                <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-lg blur opacity-30 group-hover:opacity-100 transition duration-1000 -z-10"></div>
+                <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                  HoopInsights
+                </h3>
+              </div>
               <p className="text-sm opacity-70 max-w-sm leading-relaxed">
                 Transform your basketball analysis. Make data-driven decisions and improve your game with advanced analytics.
               </p>
               
               {/* Newsletter Signup */}
-              <div className="mt-4">
+              <div className="mt-2 sm:mt-4">
                 <p className="text-sm font-medium mb-2">Join our newsletter</p>
                 <div className="join">
                   <input className="input input-sm join-item input-bordered w-full max-w-xs" placeholder="Your email address"/>
@@ -30,54 +33,66 @@ const Footer = () => {
             </div>
             
             {/* Quick Links */}
-            <div className="flex flex-col space-y-5">
+            <div className="flex flex-col space-y-4 sm:space-y-5 animation-delay-500 animate-fadeIn">
               <h3 className="text-sm font-medium uppercase tracking-wider opacity-70">Resources</h3>
               <ul className="grid grid-cols-2 gap-2">
                 <li>
                   <a href="https://github.com/Ronney221/hoopinsights" className="flex items-center text-sm hover:text-primary transition-colors py-1 group">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+                    <div className="p-1.5 rounded bg-base-200/50 mr-2 group-hover:bg-primary/10 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
                     Documentation
                   </a>
                 </li>
                 <li>
                   <a href="#" className="flex items-center text-sm hover:text-primary transition-colors py-1 group">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
+                    <div className="p-1.5 rounded bg-base-200/50 mr-2 group-hover:bg-primary/10 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                    </div>
                     Privacy Policy
                   </a>
                 </li>
                 <li>
                   <a href="#" className="flex items-center text-sm hover:text-primary transition-colors py-1 group" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                    </svg>
+                    <div className="p-1.5 rounded bg-base-200/50 mr-2 group-hover:bg-primary/10 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                      </svg>
+                    </div>
                     Terms of Service
                   </a>
                 </li>
                 <li>
                   <a href="#" className="flex items-center text-sm hover:text-primary transition-colors py-1 group" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <div className="p-1.5 rounded bg-base-200/50 mr-2 group-hover:bg-primary/10 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
                     FAQ
                   </a>
                 </li>
                 <li>
                   <a href="#" className="flex items-center text-sm hover:text-primary transition-colors py-1 group" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
+                    <div className="p-1.5 rounded bg-base-200/50 mr-2 group-hover:bg-primary/10 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
                     Contact Us
                   </a>
                 </li>
                 <li>
                   <a href="#" className="flex items-center text-sm hover:text-primary transition-colors py-1 group" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <div className="p-1.5 rounded bg-base-200/50 mr-2 group-hover:bg-primary/10 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
                     About
                   </a>
                 </li>
@@ -85,11 +100,11 @@ const Footer = () => {
             </div>
             
             {/* Developer Info */}
-            <div className="flex flex-col space-y-5">
+            <div className="flex flex-col space-y-4 sm:space-y-5 animation-delay-1000 animate-fadeIn">
               <h3 className="text-sm font-medium uppercase tracking-wider opacity-70">Developer</h3>
-              <div className="flex items-center gap-4">
-                <div className="avatar">
-                  <div className="w-14 h-14 rounded-full ring ring-primary ring-offset-2 ring-offset-base-100 shadow-lg">
+              <div className="flex items-center gap-4 group">
+                <div className="avatar transition-transform group-hover:scale-105">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full ring ring-primary ring-offset-2 ring-offset-base-100 shadow-lg">
                     <img
                       src="https://i.ibb.co/9mpW9XRV/avatar.webp"
                       alt="Ronney Do"
@@ -108,9 +123,9 @@ const Footer = () => {
               </div>
               
               {/* Social Links */}
-              <div className="flex items-center gap-3 mt-2">
+              <div className="flex items-center gap-2 sm:gap-3 mt-2">
                 <a href="https://github.com/ronney221" 
-                  className="btn btn-circle btn-sm btn-ghost hover:bg-primary/10 transition-transform hover:scale-110" 
+                  className="btn btn-circle btn-sm btn-ghost hover:bg-primary/10 transition-all hover:scale-110 hover:shadow-md" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   aria-label="GitHub"
@@ -121,7 +136,7 @@ const Footer = () => {
                 </a>
                 
                 <a href="https://www.linkedin.com/in/ronney221" 
-                  className="btn btn-circle btn-sm btn-ghost hover:bg-primary/10 transition-transform hover:scale-110" 
+                  className="btn btn-circle btn-sm btn-ghost hover:bg-primary/10 transition-all hover:scale-110 hover:shadow-md" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   aria-label="LinkedIn"
@@ -132,7 +147,7 @@ const Footer = () => {
                 </a>
                 
                 <a href="https://www.instagram.com/ronneydo/" 
-                  className="btn btn-circle btn-sm btn-ghost hover:bg-primary/10 transition-transform hover:scale-110" 
+                  className="btn btn-circle btn-sm btn-ghost hover:bg-primary/10 transition-all hover:scale-110 hover:shadow-md" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   aria-label="Instagram"
@@ -143,7 +158,7 @@ const Footer = () => {
                 </a>
                 
                 <a href="https://www.tiktok.com/@ronneydophotography" 
-                  className="btn btn-circle btn-sm btn-ghost hover:bg-primary/10 transition-transform hover:scale-110" 
+                  className="btn btn-circle btn-sm btn-ghost hover:bg-primary/10 transition-all hover:scale-110 hover:shadow-md" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   aria-label="TikTok"
@@ -154,6 +169,13 @@ const Footer = () => {
                 </a>
               </div>
             </div>
+          </div>
+          
+          {/* Copyright */}
+          <div className="mt-10 pt-8 border-t border-base-300/30 text-center">
+            <p className="text-sm opacity-60">
+              © {new Date().getFullYear()} HoopInsights. All rights reserved.
+            </p>
           </div>
         </div>
       </div>
