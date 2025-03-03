@@ -346,6 +346,274 @@ const HoopInsights = ({ setCurrentPage }) => {
     }
   };
 
+  const exportToJSON = () => {
+    // Prepare data for both teams
+    const team1Stats = getTeamStats('team1');
+    const team2Stats = getTeamStats('team2');
+    const team1Players = game.teams.team1.players.map(player => ({
+      name: player,
+      team: game.teams.team1.name,
+      ...getPlayerStats(player, 'team1')
+    }));
+    const team2Players = game.teams.team2.players.map(player => ({
+      name: player,
+      team: game.teams.team2.name,
+      ...getPlayerStats(player, 'team2')
+    }));
+
+    const jsonData = {
+      gameInfo: {
+        title: game.title,
+        date: new Date().toISOString(),
+        videoId: game.videoId,
+        videoUrl: `https://www.youtube.com/watch?v=${game.videoId}`
+      },
+      teams: {
+        [game.teams.team1.name]: {
+          stats: team1Stats,
+          players: team1Players
+        },
+        [game.teams.team2.name]: {
+          stats: team2Stats,
+          players: team2Players
+        }
+      }
+    };
+
+    // Create and trigger download
+    const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${game.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_stats.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const exportToPDF = async () => {
+    // We'll use jspdf and jspdf-autotable for PDF generation
+    const { jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+    
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(20);
+    doc.text(game.title, 14, 20);
+    
+    // Add date
+    doc.setFontSize(12);
+    doc.text(`Generated on ${new Date().toLocaleDateString()}`, 14, 30);
+    
+    // Team Statistics
+    doc.setFontSize(16);
+    doc.text('Team Statistics', 14, 40);
+    
+    const team1Stats = getTeamStats('team1');
+    const team2Stats = getTeamStats('team2');
+    
+    autoTable(doc, {
+      startY: 45,
+      head: [['Team', 'Points', 'FG%', '3P%', 'FT%', 'REB', 'AST', 'STL', 'BLK']],
+      body: [
+        [
+          game.teams.team1.name,
+          team1Stats.points,
+          `${((team1Stats.fgMade/team1Stats.fgAttempts)*100||0).toFixed(1)}%`,
+          `${((team1Stats.threePtMade/team1Stats.threePtAttempts)*100||0).toFixed(1)}%`,
+          `${((team1Stats.ftMade/team1Stats.ftAttempts)*100||0).toFixed(1)}%`,
+          team1Stats.rebounds,
+          team1Stats.assists,
+          team1Stats.steals,
+          team1Stats.blocks
+        ],
+        [
+          game.teams.team2.name,
+          team2Stats.points,
+          `${((team2Stats.fgMade/team2Stats.fgAttempts)*100||0).toFixed(1)}%`,
+          `${((team2Stats.threePtMade/team2Stats.threePtAttempts)*100||0).toFixed(1)}%`,
+          `${((team2Stats.ftMade/team2Stats.ftAttempts)*100||0).toFixed(1)}%`,
+          team2Stats.rebounds,
+          team2Stats.assists,
+          team2Stats.steals,
+          team2Stats.blocks
+        ]
+      ]
+    });
+    
+    // Player Statistics
+    doc.setFontSize(16);
+    doc.text('Player Statistics', 14, doc.lastAutoTable.finalY + 20);
+    
+    const playerStats = [...game.teams.team1.players, ...game.teams.team2.players].map(player => {
+      const stats = getPlayerStats(player, game.teams.team1.players.includes(player) ? 'team1' : 'team2');
+      const team = game.teams.team1.players.includes(player) ? game.teams.team1.name : game.teams.team2.name;
+      return [
+        player,
+        team,
+        stats.points,
+        `${stats.fgMade}/${stats.fgAttempts}`,
+        `${stats.threePtMade}/${stats.threePtAttempts}`,
+        `${stats.ftMade}/${stats.ftAttempts}`,
+        stats.rebounds,
+        stats.assists,
+        stats.steals,
+        stats.blocks
+      ];
+    });
+    
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 25,
+      head: [['Player', 'Team', 'PTS', 'FG', '3PT', 'FT', 'REB', 'AST', 'STL', 'BLK']],
+      body: playerStats
+    });
+    
+    // Save the PDF
+    doc.save(`${game.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_stats.pdf`);
+  };
+
+  // Replace the Export Button section with the new design
+  const ExportSection = () => (
+    <div className="mb-6">
+      <h3 className="text-lg font-bold mb-4">Export Formats</h3>
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { format: 'CSV', icon: 'M10 18v-2m4 2v-2m4 2v-2M8 6h13a1 1 0 011 1v10a1 1 0 01-1 1H8a1 1 0 01-1-1V7a1 1 0 011-1z', description: 'Raw data export', onClick: exportToCSV },
+          { format: 'PDF', icon: 'M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', description: 'Detailed report', onClick: exportToPDF },
+          { format: 'JSON', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16', description: 'API compatible', onClick: exportToJSON }
+        ].map((item, index) => (
+          <div 
+            key={index} 
+            className="bg-base-200/50 p-4 rounded-xl text-center hover:bg-base-200 transition-colors cursor-pointer group/format"
+            onClick={item.onClick}
+          >
+            <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center group-hover/format:bg-primary/20 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+              </svg>
+            </div>
+            <div className="font-medium mb-1">{item.format}</div>
+            <div className="text-xs opacity-60">{item.description}</div>
+            {/* Download Progress - Initially Hidden */}
+            <div className="mt-2 opacity-0 group-hover/format:opacity-100 transition-opacity">
+              <div className="h-1 bg-base-300 rounded-full overflow-hidden">
+                <div className="h-full bg-primary rounded-full transition-all duration-1000 w-0 group-hover/format:w-full"></div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const getTeamLeaders = (teamId) => {
+    if (!game || !game.teams || !game.teams[teamId]) return null;
+    
+    const leaders = {
+      points: { value: 0, player: '' },
+      rebounds: { value: 0, player: '' },
+      assists: { value: 0, player: '' },
+      steals: { value: 0, player: '' },
+      blocks: { value: 0, player: '' },
+      fgPercentage: { value: 0, player: '' },
+      threePtPercentage: { value: 0, player: '' },
+      ftPercentage: { value: 0, player: '' }
+    };
+    
+    game.teams[teamId].players.forEach(player => {
+      const stats = getPlayerStats(player, teamId);
+      if (!stats) return;
+      
+      // Update points leader
+      if (stats.points > leaders.points.value) {
+        leaders.points = { value: stats.points, player: player };
+      }
+      // Update rebounds leader
+      if (stats.rebounds > leaders.rebounds.value) {
+        leaders.rebounds = { value: stats.rebounds, player: player };
+      }
+      // Update assists leader
+      if (stats.assists > leaders.assists.value) {
+        leaders.assists = { value: stats.assists, player: player };
+      }
+      // Update steals leader
+      if (stats.steals > leaders.steals.value) {
+        leaders.steals = { value: stats.steals, player: player };
+      }
+      // Update blocks leader
+      if (stats.blocks > leaders.blocks.value) {
+        leaders.blocks = { value: stats.blocks, player: player };
+      }
+      // Update FG% leader (minimum 5 attempts)
+      if (stats.fgAttempts >= 5 && stats.fgPercentage > leaders.fgPercentage.value) {
+        leaders.fgPercentage = { value: stats.fgPercentage, player: player };
+      }
+      // Update 3PT% leader (minimum 3 attempts)
+      if (stats.threePtAttempts >= 3 && stats.threePtPercentage > leaders.threePtPercentage.value) {
+        leaders.threePtPercentage = { value: stats.threePtPercentage, player: player };
+      }
+      // Update FT% leader (minimum 2 attempts)
+      if (stats.ftAttempts >= 2 && stats.ftPercentage > leaders.ftPercentage.value) {
+        leaders.ftPercentage = { value: stats.ftPercentage, player: player };
+      }
+    });
+    
+    return leaders;
+  };
+
+  const calculateBadges = (stats, teamLeaders) => {
+    const badges = [];
+    
+    // Sharpshooter Badge (based on FG% and 3PT%)
+    if (stats.fgAttempts >= 5) {
+      const shootingScore = (stats.fgPercentage + (stats.threePtPercentage * 1.5)) / 2;
+      if (shootingScore >= 60) {
+        badges.push({ name: 'Sharpshooter', icon: '🎯', level: 'Gold', progress: 95 });
+      } else if (shootingScore >= 45) {
+        badges.push({ name: 'Sharpshooter', icon: '🎯', level: 'Silver', progress: 75 });
+      } else if (shootingScore >= 35) {
+        badges.push({ name: 'Sharpshooter', icon: '🎯', level: 'Bronze', progress: 45 });
+      }
+    }
+    
+    // Playmaker Badge (assists vs turnovers)
+    if (stats.assists > 0) {
+      const assistRatio = stats.assists / (stats.turnovers || 1);
+      if (assistRatio >= 3) {
+        badges.push({ name: 'Playmaker', icon: '🏀', level: 'Gold', progress: 90 });
+      } else if (assistRatio >= 2) {
+        badges.push({ name: 'Playmaker', icon: '🏀', level: 'Silver', progress: 70 });
+      } else if (assistRatio >= 1.5) {
+        badges.push({ name: 'Playmaker', icon: '🏀', level: 'Bronze', progress: 40 });
+      }
+    }
+    
+    // Defender Badge (rebounds + steals + blocks)
+    const defenseScore = stats.rebounds + (stats.steals * 2) + (stats.blocks * 2);
+    if (defenseScore >= 15) {
+      badges.push({ name: 'Defender', icon: '🛡️', level: 'Gold', progress: 95 });
+    } else if (defenseScore >= 10) {
+      badges.push({ name: 'Defender', icon: '🛡️', level: 'Silver', progress: 75 });
+    } else if (defenseScore >= 5) {
+      badges.push({ name: 'Defender', icon: '🛡️', level: 'Bronze', progress: 45 });
+    }
+    
+    // Clutch Badge (points efficiency)
+    const efficiency = stats.points + stats.rebounds + stats.assists + stats.steals + stats.blocks - 
+                      (stats.fgAttempts - stats.fgMade) - (stats.ftAttempts - stats.ftMade) - stats.turnovers;
+    if (efficiency >= 25) {
+      badges.push({ name: 'Clutch', icon: '⚡', level: 'Gold', progress: 90 });
+    } else if (efficiency >= 15) {
+      badges.push({ name: 'Clutch', icon: '⚡', level: 'Silver', progress: 70 });
+    } else if (efficiency >= 10) {
+      badges.push({ name: 'Clutch', icon: '⚡', level: 'Bronze', progress: 40 });
+    }
+    
+    return badges;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-100 pt-32">
@@ -618,7 +886,10 @@ const HoopInsights = ({ setCurrentPage }) => {
                     if (player.name !== selectedPlayer) return null;
                     
                     const stats = getPlayerStats(player.name, player.team);
-                    if (!stats) return null;
+                    const teamLeaders = getTeamLeaders(player.team);
+                    const badges = calculateBadges(stats, teamLeaders);
+                    
+                    if (!stats || !teamLeaders) return null;
                     
                     return (
                       <div key={player.name}>
@@ -637,74 +908,110 @@ const HoopInsights = ({ setCurrentPage }) => {
                           </button>
                         </div>
                         
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                          <div className="stat bg-base-200/50 p-3 rounded-box">
-                            <div className="stat-title text-xs">Points</div>
-                            <div className="stat-value text-2xl">{stats.points}</div>
+                        {/* Progress Charts */}
+                        <div className="space-y-4 mb-6">
+                          {/* Points */}
+                          <div className="bg-base-200/50 p-4 rounded-xl">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium">Points</span>
+                              <span className="text-primary font-bold">{stats.points}</span>
+                            </div>
+                            <div className="h-2 bg-base-300 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-primary rounded-full transition-all duration-1000"
+                                style={{ width: `${(stats.points / (teamLeaders.points.value || 1)) * 100}%` }}
+                              ></div>
+                            </div>
+                            <div className="flex justify-between text-xs opacity-60 mt-1">
+                              <span>Current: {stats.points}</span>
+                              <span>Team High: {teamLeaders.points.player} ({teamLeaders.points.value})</span>
+                            </div>
                           </div>
-                          <div className="stat bg-base-200/50 p-3 rounded-box">
-                            <div className="stat-title text-xs">Rebounds</div>
-                            <div className="stat-value text-2xl">{stats.rebounds}</div>
-                          </div>
-                          <div className="stat bg-base-200/50 p-3 rounded-box">
-                            <div className="stat-title text-xs">Assists</div>
-                            <div className="stat-value text-2xl">{stats.assists}</div>
-                          </div>
-                          <div className="stat bg-base-200/50 p-3 rounded-box">
-                            <div className="stat-title text-xs">Steals</div>
-                            <div className="stat-value text-2xl">{stats.steals}</div>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                          <div className="bg-base-200/50 p-3 rounded-box">
-                            <div className="text-sm font-medium">Field Goals</div>
-                            <div className="flex justify-between mt-1">
+
+                          {/* Field Goal Percentage */}
+                          <div className="bg-base-200/50 p-4 rounded-xl">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium">Field Goal %</span>
+                              <span className="text-secondary font-bold">{stats.fgPercentage}%</span>
+                            </div>
+                            <div className="h-2 bg-base-300 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-secondary rounded-full transition-all duration-1000"
+                                style={{ width: `${(stats.fgPercentage / (teamLeaders.fgPercentage.value || 1)) * 100}%` }}
+                              ></div>
+                            </div>
+                            <div className="flex justify-between text-xs opacity-60 mt-1">
                               <span>{stats.fgMade}/{stats.fgAttempts}</span>
-                              <span className={stats.fgPercentage >= 50 ? 'text-success' : stats.fgPercentage <= 30 ? 'text-error' : ''}>
-                                {stats.fgPercentage}%
-                              </span>
+                              <span>Team High: {teamLeaders.fgPercentage.player} ({teamLeaders.fgPercentage.value}%)</span>
                             </div>
                           </div>
-                          <div className="bg-base-200/50 p-3 rounded-box">
-                            <div className="text-sm font-medium">3-Pointers</div>
-                            <div className="flex justify-between mt-1">
-                              <span>{stats.threePtMade}/{stats.threePtAttempts}</span>
-                              <span className={stats.threePtPercentage >= 40 ? 'text-success' : stats.threePtPercentage <= 25 ? 'text-error' : ''}>
-                                {stats.threePtPercentage}%
-                              </span>
+
+                          {/* Rebounds */}
+                          <div className="bg-base-200/50 p-4 rounded-xl">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium">Rebounds</span>
+                              <span className="text-accent font-bold">{stats.rebounds}</span>
+                            </div>
+                            <div className="h-2 bg-base-300 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-accent rounded-full transition-all duration-1000"
+                                style={{ width: `${(stats.rebounds / (teamLeaders.rebounds.value || 1)) * 100}%` }}
+                              ></div>
+                            </div>
+                            <div className="flex justify-between text-xs opacity-60 mt-1">
+                              <span>Current: {stats.rebounds}</span>
+                              <span>Team High: {teamLeaders.rebounds.player} ({teamLeaders.rebounds.value})</span>
                             </div>
                           </div>
-                          <div className="bg-base-200/50 p-3 rounded-box">
-                            <div className="text-sm font-medium">Free Throws</div>
-                            <div className="flex justify-between mt-1">
-                              <span>{stats.ftMade}/{stats.ftAttempts}</span>
-                              <span className={stats.ftPercentage >= 75 ? 'text-success' : stats.ftPercentage <= 50 ? 'text-error' : ''}>
-                                {stats.ftPercentage}%
-                              </span>
+
+                          {/* Assists */}
+                          <div className="bg-base-200/50 p-4 rounded-xl">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium">Assists</span>
+                              <span className="text-info font-bold">{stats.assists}</span>
+                            </div>
+                            <div className="h-2 bg-base-300 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-info rounded-full transition-all duration-1000"
+                                style={{ width: `${(stats.assists / (teamLeaders.assists.value || 1)) * 100}%` }}
+                              ></div>
+                            </div>
+                            <div className="flex justify-between text-xs opacity-60 mt-1">
+                              <span>Current: {stats.assists}</span>
+                              <span>Team High: {teamLeaders.assists.player} ({teamLeaders.assists.value})</span>
                             </div>
                           </div>
                         </div>
                         
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
-                          <div className="bg-base-200/50 p-3 rounded-box">
-                            <div className="text-sm font-medium">Blocks</div>
-                            <div className="mt-1">{stats.blocks}</div>
-                          </div>
-                          <div className="bg-base-200/50 p-3 rounded-box">
-                            <div className="text-sm font-medium">Turnovers</div>
-                            <div className="mt-1">{stats.turnovers}</div>
-                          </div>
-                          <div className="bg-base-200/50 p-3 rounded-box">
-                            <div className="text-sm font-medium">Fouls</div>
-                            <div className="mt-1">{stats.fouls}</div>
-                          </div>
-                          <div className="bg-base-200/50 p-3 rounded-box">
-                            <div className="text-sm font-medium">Efficiency</div>
-                            <div className="mt-1">
-                              {stats.points + stats.rebounds + stats.assists + stats.steals + stats.blocks - (stats.fgAttempts - stats.fgMade) - (stats.ftAttempts - stats.ftMade) - stats.turnovers}
+                        {/* Achievement Badges */}
+                        <div className="grid grid-cols-4 gap-4">
+                          {badges.map((badge, index) => (
+                            <div 
+                              key={index}
+                              className="group relative bg-base-200/50 p-3 rounded-xl text-center cursor-pointer hover:bg-base-200 transition-colors"
+                            >
+                              <div className="text-2xl mb-1">{badge.icon}</div>
+                              <div className="text-xs font-medium truncate">{badge.name}</div>
+                              <div className={`text-xs ${
+                                badge.level === 'Gold' ? 'text-warning' :
+                                badge.level === 'Silver' ? 'text-base-content/60' :
+                                'text-orange-600'
+                              }`}>
+                                {badge.level}
+                              </div>
+                              {/* Tooltip */}
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 p-2 bg-base-300 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                <div className="font-medium mb-1">{badge.name}</div>
+                                <div className="h-1 bg-base-content/20 rounded-full">
+                                  <div 
+                                    className="h-full bg-primary rounded-full"
+                                    style={{ width: `${badge.progress}%` }}
+                                  ></div>
+                                </div>
+                                <div className="mt-1 opacity-60">{badge.progress}% Complete</div>
+                              </div>
                             </div>
-                          </div>
+                          ))}
                         </div>
                       </div>
                     );
@@ -912,18 +1219,8 @@ const HoopInsights = ({ setCurrentPage }) => {
               </div>
             </div>
 
-            {/* Export Button */}
-            <div className="text-center">
-              <button
-                onClick={exportToCSV}
-                className="btn btn-primary gap-2"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Export as CSV
-              </button>
-            </div>
+            {/* Replace the old export button with the new ExportSection */}
+            <ExportSection />
           </section>
         )}
 
