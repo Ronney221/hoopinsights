@@ -61,6 +61,7 @@ const userRoutes = require('./routes/users');
 const analysisRoutes = require('./routes/analysis');
 const statsRoutes = require('./routes/stats');
 const statsV2Routes = require('./routes/statsV2');
+const seasonsRoutes = require('./routes/seasons');
 
 // Connect to DB before handling routes for Vercel serverless functions
 app.use(async (req, res, next) => {
@@ -77,6 +78,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/analysis', analysisRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/statsv2', statsV2Routes);
+app.use('/api/seasons', seasonsRoutes);
 
 // Test route
 app.get('/api/test', (req, res) => {

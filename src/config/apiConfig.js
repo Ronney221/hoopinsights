@@ -44,6 +44,16 @@ export const STATS_V2_ENDPOINTS = {
   SAVE_SHARED_GAME: (shareId) => `${API_URL}/statsv2/saveSharedGame/${shareId}`
 };
 
+// Season-related API endpoints
+export const SEASON_ENDPOINTS = {
+  BASE_URL: `${API_URL}/seasons`,
+  GET_SEASONS: `${API_URL}/seasons`,
+  GET_SEASON: (seasonId) => `${API_URL}/seasons/${seasonId}`,
+  CREATE_SEASON: `${API_URL}/seasons`,
+  UPDATE_SEASON: (seasonId) => `${API_URL}/seasons/${seasonId}`,
+  DELETE_SEASON: (seasonId) => `${API_URL}/seasons/${seasonId}`
+};
+
 // A helper function to get absolute frontend URLs (for email links, etc.)
 export const getAppUrl = (path = '') => {
   return `${APP_URL}${path.startsWith('/') ? path : `/${path}`}`;
