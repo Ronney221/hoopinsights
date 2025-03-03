@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useAuth } from './contexts/AuthContext';
-import { STATS_ENDPOINTS, STATS_V2_ENDPOINTS, createApiHeaders, APP_URL } from './config/apiConfig';
+import { STATS_ENDPOINTS, STATS_V2_ENDPOINTS, SEASON_ENDPOINTS, createApiHeaders, APP_URL } from './config/apiConfig';
 
 const SavedGames = ({ setCurrentPage }) => {
   const { currentUser } = useAuth();
@@ -12,6 +12,10 @@ const SavedGames = ({ setCurrentPage }) => {
   const [filterOption, setFilterOption] = useState('all');
   const [sharingGame, setSharingGame] = useState(null);
   const [shareUrls, setShareUrls] = useState({});
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [selectedGames, setSelectedGames] = useState([]);
+  const [seasons, setSeasons] = useState([]);
+  const [selectedSeason, setSelectedSeason] = useState(null);
 
   // Demo games data with the provided players and YouTube link
   const demoGames = [
@@ -216,6 +220,30 @@ const SavedGames = ({ setCurrentPage }) => {
     fetchSavedGames();
   }, [currentUser]);
 
+  // Load seasons from API instead of localStorage
+  useEffect(() => {
+    const fetchSeasons = async () => {
+      if (!currentUser) return;
+      
+      try {
+        const headers = await createApiHeaders(currentUser);
+        const response = await fetch(SEASON_ENDPOINTS.GET_SEASONS, { headers });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch seasons');
+        }
+        
+        const seasonsData = await response.json();
+        setSeasons(seasonsData);
+      } catch (error) {
+        console.error('Error fetching seasons:', error);
+        toast.error('Failed to load seasons');
+      }
+    };
+    
+    fetchSeasons();
+  }, [currentUser]);
+
   // Helper function to format date
   const formatDate = (dateString) => {
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -402,8 +430,27 @@ const SavedGames = ({ setCurrentPage }) => {
     }
   };
 
-  // Get filtered games based on selected option
+  // Modify the filter options to include a season selection dropdown
+  const filterOptions = ['all', 'recent', 'month'];
+  
+  // Add a function to filter games by season
+  const getGamesBySeason = (seasonId) => {
+    const season = seasons.find(s => s._id === seasonId);
+    if (!season) return [];
+    
+    // Season now contains an array of gameIds, not game objects
+    const seasonVideoIds = season.gameIds || [];
+    
+    // Return games that match those IDs
+    return games.filter(game => seasonVideoIds.includes(game.videoId));
+  };
+  
+  // Modify getFilteredGames to include season filtering
   const getFilteredGames = () => {
+    if (selectedSeason) {
+      return getGamesBySeason(selectedSeason);
+    }
+    
     if (filterOption === 'all') return games;
     
     const currentDate = new Date();
@@ -480,6 +527,85 @@ const SavedGames = ({ setCurrentPage }) => {
     }
   };
 
+  // Add this function to toggle selection mode
+  const toggleMultiSelectMode = () => {
+    if (multiSelectMode) {
+      // Clear selections when exiting multi-select mode
+      setSelectedGames([]);
+    }
+    setMultiSelectMode(!multiSelectMode);
+  };
+  
+  // Add this function to toggle game selection
+  const toggleGameSelection = (gameId) => {
+    setSelectedGames(prev => {
+      if (prev.includes(gameId)) {
+        return prev.filter(id => id !== gameId);
+      } else {
+        return [...prev, gameId];
+      }
+    });
+  };
+  
+  // Update the function to create a season via API
+  const createSeasonFromSelection = async () => {
+    if (selectedGames.length === 0) {
+      toast.warning('Please select at least one game to create a season');
+      return;
+    }
+    
+    if (!currentUser) {
+      toast.warning('Please sign in to create a season');
+      setCurrentPage('login');
+      return;
+    }
+
+    try {
+      // Create season name based on date
+      const seasonName = `Season ${new Date().toLocaleDateString()}`;
+      
+      // Create new season object with just the videoIds
+      const gameIds = selectedGames;
+      
+      const seasonData = {
+        name: seasonName,
+        gameIds: gameIds
+      };
+      
+      // Make API call to create the season
+      const headers = await createApiHeaders(currentUser);
+      const response = await fetch(SEASON_ENDPOINTS.CREATE_SEASON, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(seasonData)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create season');
+      }
+      
+      // Fetch updated seasons list
+      const seasonsResponse = await fetch(SEASON_ENDPOINTS.GET_SEASONS, { headers });
+      if (!seasonsResponse.ok) {
+        throw new Error('Failed to fetch updated seasons');
+      }
+      const updatedSeasons = await seasonsResponse.json();
+      setSeasons(updatedSeasons);
+      
+      toast.success(`Created "${seasonName}" with ${selectedGames.length} games`);
+      
+      // Exit multi-select mode
+      setMultiSelectMode(false);
+      setSelectedGames([]);
+      
+      // Navigate to Season Stats page
+      setCurrentPage('season-stats');
+    } catch (error) {
+      console.error('Error creating season:', error);
+      toast.error('Failed to create season: ' + error.message);
+    }
+  };
+
   return (
     <div className="min-h-screen">
       {/* Hero Section with Visual Appeal */}
@@ -493,30 +619,98 @@ const SavedGames = ({ setCurrentPage }) => {
             <h1 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Your Saved Games
             </h1>
-            <p className="text-lg opacity-80 max-w-2xl mx-auto">
+            <p className="text-lg opacity-80 max-w-2xl mx-auto mb-6">
               Review and analyze statistics from your previously tracked basketball games
             </p>
             
+           
+            
             {(currentUser || (!currentUser && games.length > 0)) && !loading && games.length > 0 && (
-              <div className="mt-8 bg-base-100/80 backdrop-blur-sm p-1 rounded-full border border-base-200 shadow-sm flex gap-1">
+              <div className="mt-8 bg-base-100/80 backdrop-blur-sm p-1 rounded-full border border-base-200 shadow-sm flex flex-wrap gap-1">
                 <button 
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${filterOption === 'all' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200'}`}
-                  onClick={() => setFilterOption('all')}
+                  onClick={() => {
+                    setFilterOption('all');
+                    setSelectedSeason(null);
+                  }}
                 >
                   All Games
                 </button>
                 <button 
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${filterOption === 'recent' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200'}`}
-                  onClick={() => setFilterOption('recent')}
+                  onClick={() => {
+                    setFilterOption('recent');
+                    setSelectedSeason(null);
+                  }}
                 >
                   Last 7 Days
                 </button>
                 <button 
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${filterOption === 'month' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200'}`}
-                  onClick={() => setFilterOption('month')}
+                  onClick={() => {
+                    setFilterOption('month');
+                    setSelectedSeason(null);
+                  }}
                 >
                   This Month
                 </button>
+                
+                {/* Season Filter Dropdown */}
+                {seasons.length > 0 && (
+                  <div className="dropdown dropdown-end">
+                    <button 
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedSeason ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200'}`}
+                    >
+                      {selectedSeason
+                        ? seasons.find(s => s._id === selectedSeason)?.name || 'Season'
+                        : 'Season'
+                      }
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 mt-1">
+                      {seasons.map(season => (
+                        <li key={season._id}>
+                          <a 
+                            onClick={() => {
+                              setSelectedSeason(season._id);
+                              setFilterOption(null);
+                            }}
+                            className={selectedSeason === season._id ? 'active' : ''}
+                          >
+                            <div className="flex justify-between items-center">
+                              {season.name}
+                              <span className="badge badge-sm">{season.gameIds ? season.gameIds.length : 0}</span>
+                            </div>
+                          </a>
+                        </li>
+                      ))}
+                      <li>
+                        <a onClick={() => setCurrentPage('season-stats')}>
+                          Manage Seasons
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                )}
+                
+                <div className="flex-grow"></div>
+                <button 
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${multiSelectMode ? 'bg-accent text-accent-content shadow-md' : 'hover:bg-base-200'}`}
+                  onClick={toggleMultiSelectMode}
+                >
+                  {multiSelectMode ? 'Cancel Selection' : 'Select Games'}
+                </button>
+                {multiSelectMode && (
+                  <button 
+                    className="px-4 py-2 rounded-full text-sm font-medium transition-all bg-success text-success-content shadow-md"
+                    onClick={createSeasonFromSelection}
+                    disabled={selectedGames.length === 0}
+                  >
+                    Create Season ({selectedGames.length})
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -626,7 +820,7 @@ const SavedGames = ({ setCurrentPage }) => {
         {/* Games Grid - show for both logged in users and non-logged in with demo games */}
         {!loading && games.length > 0 && (
           <div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-24">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {getFilteredGames().map(game => {
                 const { totalPoints, totalStats } = getGameSummary(game);
                 const gameId = game.id || game._id || `demo-${game.title.replace(/\s+/g, '-').toLowerCase()}`;
@@ -634,9 +828,40 @@ const SavedGames = ({ setCurrentPage }) => {
                 return (
                   <div 
                     key={gameId}
-                    className="card bg-base-100 hover:shadow-xl transition-all duration-300 border border-base-200 cursor-pointer group overflow-hidden"
+                    className={`card bg-base-100 shadow-xl overflow-hidden border transition-all duration-300 ${
+                      multiSelectMode 
+                        ? selectedGames.includes(game.videoId) 
+                          ? 'border-success border-2 shadow-success/20' 
+                          : 'border-base-200 opacity-70' 
+                        : 'border-base-200 hover:border-primary/20'
+                    }`}
                     onClick={() => setExpandedGame(expandedGame === gameId ? null : gameId)}
                   >
+                    {/* Make the checkbox more prominent */}
+                    {multiSelectMode && (
+                      <div 
+                        className="absolute top-0 left-0 w-full h-full z-10 cursor-pointer"
+                        onClick={() => toggleGameSelection(game.videoId)}
+                      >
+                        <div className="absolute top-4 right-4 bg-base-100 rounded-full shadow-lg p-1">
+                          <input 
+                            type="checkbox" 
+                            className="checkbox checkbox-success checkbox-lg" 
+                            checked={selectedGames.includes(game.videoId)}
+                            onChange={() => toggleGameSelection(game.videoId)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                        {selectedGames.includes(game.videoId) && (
+                          <div className="absolute top-0 left-0 w-full h-full bg-success/10 flex items-center justify-center">
+                            <div className="bg-success/90 text-success-content rounded-full px-4 py-2 font-bold">
+                              Selected
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
                     {/* YouTube Thumbnail */}
                     <figure className="relative h-48 overflow-hidden">
                       <img 
@@ -813,16 +1038,25 @@ const SavedGames = ({ setCurrentPage }) => {
               </div>
             )}
             
-            {/* Track New Game Button */}
-            <div className="flex justify-center mt-10">
-              <button 
-                className="btn btn-primary"
+            {/* Navigation buttons */}
+            <div className="flex justify-center mt-2 space-x-4 pt-16">
+              <button
                 onClick={() => setCurrentPage('youtube')}
+                className="btn btn-outline btn-sm px-4 group flex items-center gap-2 hover:gap-3 transition-all"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
                 Track New Game
+              </button>
+              <button
+                onClick={() => setCurrentPage('season-stats')}
+                className="btn btn-outline btn-sm px-4 group flex items-center gap-2 hover:gap-3 transition-all"
+              >
+                Season Stats
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
               </button>
             </div>
           </div>
