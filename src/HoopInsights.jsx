@@ -12,6 +12,7 @@ const HoopInsights = ({ setCurrentPage }) => {
   const [saving, setSaving] = useState(false);
   const [expandedSection, setExpandedSection] = useState('stats'); // 'stats' or 'timeline' or 'fullStats'
   const { success, error: notificationError, warning, info } = useNotification();
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   useEffect(() => {
     const loadGameData = () => {
@@ -566,15 +567,69 @@ const HoopInsights = ({ setCurrentPage }) => {
   const calculateBadges = (stats, teamLeaders) => {
     const badges = [];
     
-    // Sharpshooter Badge (based on FG% and 3PT%)
-    if (stats.fgAttempts >= 5) {
-      const shootingScore = (stats.fgPercentage + (stats.threePtPercentage * 1.5)) / 2;
-      if (shootingScore >= 60) {
-        badges.push({ name: 'Sharpshooter', icon: '🎯', level: 'Gold', progress: 95 });
-      } else if (shootingScore >= 45) {
-        badges.push({ name: 'Sharpshooter', icon: '🎯', level: 'Silver', progress: 75 });
-      } else if (shootingScore >= 35) {
-        badges.push({ name: 'Sharpshooter', icon: '🎯', level: 'Bronze', progress: 45 });
+    // MVP Badge (points + assists * 2)
+    const mvpScore = stats.points + (stats.assists * 2);
+    if (mvpScore > 0) {
+      if (mvpScore >= 30) {
+        badges.push({ 
+          name: 'MVP', 
+          icon: '🏆🏆🏆', 
+          level: 'Gold', 
+          progress: 100,
+          description: `Generated ${stats.points} points and ${stats.assists * 2} potential points from assists`,
+          metrics: 'Points + (Assists × 2) ≥ 30'
+        });
+      } else if (mvpScore >= 20) {
+        badges.push({ 
+          name: 'MVP', 
+          icon: '🏆🏆', 
+          level: 'Silver', 
+          progress: 75,
+          description: `Generated ${stats.points} points and ${stats.assists * 2} potential points from assists`,
+          metrics: 'Points + (Assists × 2) ≥ 20'
+        });
+      } else if (mvpScore >= 10) {
+        badges.push({ 
+          name: 'MVP', 
+          icon: '🏆', 
+          level: 'Bronze', 
+          progress: 45,
+          description: `Generated ${stats.points} points and ${stats.assists * 2} potential points from assists`,
+          metrics: 'Points + (Assists × 2) ≥ 10'
+        });
+      }
+    }
+    
+    // Big Man Badge (rebounds + blocks * 2)
+    const bigManScore = stats.rebounds + (stats.blocks * 2);
+    if (bigManScore > 0) {
+      if (bigManScore >= 15) {
+        badges.push({ 
+          name: 'Big Man', 
+          icon: '💪💪💪', 
+          level: 'Gold', 
+          progress: 100,
+          description: `Dominated the paint with ${stats.rebounds} rebounds and ${stats.blocks} blocks`,
+          metrics: 'Rebounds + (Blocks × 2) ≥ 15'
+        });
+      } else if (bigManScore >= 10) {
+        badges.push({ 
+          name: 'Big Man', 
+          icon: '💪💪', 
+          level: 'Silver', 
+          progress: 75,
+          description: `Dominated the paint with ${stats.rebounds} rebounds and ${stats.blocks} blocks`,
+          metrics: 'Rebounds + (Blocks × 2) ≥ 10'
+        });
+      } else if (bigManScore >= 5) {
+        badges.push({ 
+          name: 'Big Man', 
+          icon: '💪', 
+          level: 'Bronze', 
+          progress: 45,
+          description: `Dominated the paint with ${stats.rebounds} rebounds and ${stats.blocks} blocks`,
+          metrics: 'Rebounds + (Blocks × 2) ≥ 5'
+        });
       }
     }
     
@@ -582,36 +637,182 @@ const HoopInsights = ({ setCurrentPage }) => {
     if (stats.assists > 0) {
       const assistRatio = stats.assists / (stats.turnovers || 1);
       if (assistRatio >= 3) {
-        badges.push({ name: 'Playmaker', icon: '🏀', level: 'Gold', progress: 90 });
+        badges.push({ 
+          name: 'Playmaker', 
+          icon: '🏀🏀🏀', 
+          level: 'Gold', 
+          progress: 100,
+          description: `${stats.assists}:${stats.turnovers} assist to turnover ratio`,
+          metrics: 'Assist:Turnover Ratio ≥ 3:1'
+        });
       } else if (assistRatio >= 2) {
-        badges.push({ name: 'Playmaker', icon: '🏀', level: 'Silver', progress: 70 });
+        badges.push({ 
+          name: 'Playmaker', 
+          icon: '🏀🏀🏀', 
+          level: 'Silver', 
+          progress: 75,
+          description: `${stats.assists}:${stats.turnovers} assist to turnover ratio`,
+          metrics: 'Assist:Turnover Ratio ≥ 2:1'
+        });
       } else if (assistRatio >= 1.5) {
-        badges.push({ name: 'Playmaker', icon: '🏀', level: 'Bronze', progress: 40 });
+        badges.push({ 
+          name: 'Playmaker', 
+          icon: '🏀', 
+          level: 'Bronze', 
+          progress: 45,
+          description: `${stats.assists}:${stats.turnovers} assist to turnover ratio`,
+          metrics: 'Assist:Turnover Ratio ≥ 1.5:1'
+        });
       }
     }
     
-    // Defender Badge (rebounds + steals + blocks)
-    const defenseScore = stats.rebounds + (stats.steals * 2) + (stats.blocks * 2);
-    if (defenseScore >= 15) {
-      badges.push({ name: 'Defender', icon: '🛡️', level: 'Gold', progress: 95 });
-    } else if (defenseScore >= 10) {
-      badges.push({ name: 'Defender', icon: '🛡️', level: 'Silver', progress: 75 });
-    } else if (defenseScore >= 5) {
-      badges.push({ name: 'Defender', icon: '🛡️', level: 'Bronze', progress: 45 });
+    // Lockdown Defender Badge (steals + blocks)
+    const defenseScore = (stats.steals * 2) + (stats.blocks * 2);
+    if (defenseScore > 0) {
+      if (defenseScore >= 10) {
+        badges.push({ 
+          name: 'Lockdown', 
+          icon: '🛡️🛡️🛡️', 
+          level: 'Gold', 
+          progress: 100,
+          description: `Defensive force with ${stats.steals} steals and ${stats.blocks} blocks`,
+          metrics: '(Steals × 2) + (Blocks × 2) ≥ 10'
+        });
+      } else if (defenseScore >= 6) {
+        badges.push({ 
+          name: 'Lockdown', 
+          icon: '🛡️🛡️', 
+          level: 'Silver', 
+          progress: 75,
+          description: `Defensive force with ${stats.steals} steals and ${stats.blocks} blocks`,
+          metrics: '(Steals × 2) + (Blocks × 2) ≥ 6'
+        });
+      } else if (defenseScore >= 4) {
+        badges.push({ 
+          name: 'Lockdown', 
+          icon: '🛡️', 
+          level: 'Bronze', 
+          progress: 45,
+          description: `Defensive force with ${stats.steals} steals and ${stats.blocks} blocks`,
+          metrics: '(Steals × 2) + (Blocks × 2) ≥ 4'
+        });
+      }
     }
     
-    // Clutch Badge (points efficiency)
-    const efficiency = stats.points + stats.rebounds + stats.assists + stats.steals + stats.blocks - 
-                      (stats.fgAttempts - stats.fgMade) - (stats.ftAttempts - stats.ftMade) - stats.turnovers;
-    if (efficiency >= 25) {
-      badges.push({ name: 'Clutch', icon: '⚡', level: 'Gold', progress: 90 });
-    } else if (efficiency >= 15) {
-      badges.push({ name: 'Clutch', icon: '⚡', level: 'Silver', progress: 70 });
-    } else if (efficiency >= 10) {
-      badges.push({ name: 'Clutch', icon: '⚡', level: 'Bronze', progress: 40 });
+    // Sharpshooter Badge (FG% and 3PT makes)
+    if (stats.fgAttempts >= 5 || stats.threePtMade >= 2) {
+      const shootingScore = ((stats.fgPercentage * 0.6) + (stats.threePtMade * 15)) / 2;
+      if (shootingScore >= 50) {
+        badges.push({ 
+          name: 'Sharpshooter', 
+          icon: '🎯🎯🎯', 
+          level: 'Gold', 
+          progress: 100,
+          description: `${stats.fgPercentage}% FG with ${stats.threePtMade} three-pointers made`,
+          metrics: '(FG% × 0.6 + 3PM × 15) ÷ 2 ≥ 50'
+        });
+      } else if (shootingScore >= 35) {
+        badges.push({ 
+          name: 'Sharpshooter', 
+          icon: '🎯🎯', 
+          level: 'Silver', 
+          progress: 75,
+          description: `${stats.fgPercentage}% FG with ${stats.threePtMade} three-pointers made`,
+          metrics: '(FG% × 0.6 + 3PM × 15) ÷ 2 ≥ 35'
+        });
+      } else if (shootingScore >= 25) {
+        badges.push({ 
+          name: 'Sharpshooter', 
+          icon: '🎯🎯', 
+          level: 'Bronze', 
+          progress: 45,
+          description: `${stats.fgPercentage}% FG with ${stats.threePtMade} three-pointers made`,
+          metrics: '(FG% × 0.6 + 3PM × 15) ÷ 2 ≥ 25'
+        });
+      }
+    }
+    
+    // Bricks Badge (poor shooting)
+    if (stats.fgAttempts >= 5) {
+      const brickScore = (100 - stats.fgPercentage) + (100 - stats.ftPercentage);
+      if (brickScore >= 120) {
+        badges.push({ 
+          name: 'Bricklayer', 
+          icon: '🧱🧱🧱', 
+          level: 'Gold', 
+          progress: 100,
+          description: `Struggled with ${stats.fgPercentage}% FG and ${stats.ftPercentage}% FT`,
+          metrics: '(100 - FG%) + (100 - FT%) ≥ 120'
+        });
+      } else if (brickScore >= 100) {
+        badges.push({ 
+          name: 'Bricklayer', 
+          icon: '🧱🧱', 
+          level: 'Silver', 
+          progress: 75,
+          description: `Struggled with ${stats.fgPercentage}% FG and ${stats.ftPercentage}% FT`,
+          metrics: '(100 - FG%) + (100 - FT%) ≥ 100'
+        });
+      } else if (brickScore >= 80) {
+        badges.push({ 
+          name: 'Bricklayer', 
+          icon: '🧱', 
+          level: 'Bronze', 
+          progress: 45,
+          description: `Struggled with ${stats.fgPercentage}% FG and ${stats.ftPercentage}% FT`,
+          metrics: '(100 - FG%) + (100 - FT%) ≥ 80'
+        });
+      }
+    }
+    
+    // Butterfingers Badge (high turnovers)
+    if (stats.turnovers > 0) {
+      const turnoverRatio = stats.turnovers / (stats.assists || 1);
+      if (turnoverRatio >= 3 && stats.turnovers >= 4) {
+        badges.push({ 
+          name: 'Butterfingers', 
+          icon: '🧈🧈🧈', 
+          level: 'Gold', 
+          progress: 100,
+          description: `${stats.turnovers} turnovers with ${stats.assists} assists`,
+          metrics: 'Turnover:Assist Ratio ≥ 3:1 and TO ≥ 4'
+        });
+      } else if (turnoverRatio >= 2 && stats.turnovers >= 3) {
+        badges.push({ 
+          name: 'Butterfingers', 
+          icon: '🧈🧈', 
+          level: 'Silver', 
+          progress: 75,
+          description: `${stats.turnovers} turnovers with ${stats.assists} assists`,
+          metrics: 'Turnover:Assist Ratio ≥ 2:1 and TO ≥ 3'
+        });
+      } else if (turnoverRatio >= 1.5 && stats.turnovers >= 2) {
+        badges.push({ 
+          name: 'Butterfingers', 
+          icon: '🧈', 
+          level: 'Bronze', 
+          progress: 45,
+          description: `${stats.turnovers} turnovers with ${stats.assists} assists`,
+          metrics: 'Turnover:Assist Ratio ≥ 1.5:1 and TO ≥ 2'
+        });
+      }
     }
     
     return badges;
+  };
+
+  const sortData = (data, key) => {
+    if (!key) return data;
+    
+    return [...data].sort((a, b) => {
+      if (a[key] < b[key]) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (a[key] > b[key]) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
   };
 
   if (loading) {
@@ -795,41 +996,38 @@ const HoopInsights = ({ setCurrentPage }) => {
               <div className="card bg-base-100 shadow-lg border border-base-200">
                 <div className="card-body">
                   <h3 className="card-title text-primary">{game.teams.team1.name}</h3>
-                  <div className="overflow-x-auto">
-                    <table className="table table-zebra w-full">
-                      <thead>
-                        <tr>
-                          <th>Player</th>
-                          <th>PTS</th>
-                          <th>REB</th>
-                          <th>AST</th>
-                          <th>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {game.teams.team1.players.map(player => {
-                          const stats = getPlayerStats(player, 'team1');
-                          if (!stats) return null;
-                          
-                          return (
-                            <tr key={player} className={selectedPlayer === player ? 'bg-primary/10' : ''}>
-                              <td className="font-medium">{player}</td>
-                              <td>{stats.points}</td>
-                              <td>{stats.rebounds}</td>
-                              <td>{stats.assists}</td>
-                              <td>
-                                <button 
-                                  className="btn btn-xs btn-ghost"
-                                  onClick={() => setSelectedPlayer(selectedPlayer === player ? null : player)}
-                                >
-                                  {selectedPlayer === player ? 'Hide' : 'Details'}
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {game.teams.team1.players.map(player => {
+                      const stats = getPlayerStats(player, 'team1');
+                      if (!stats) return null;
+                      
+                      // Get top 3 stats
+                      const statsList = [
+                        { name: 'PTS', value: stats.points },
+                        { name: 'REB', value: stats.rebounds },
+                        { name: 'AST', value: stats.assists },
+                        { name: 'STL', value: stats.steals },
+                        { name: 'BLK', value: stats.blocks }
+                      ].sort((a, b) => b.value - a.value).slice(0, 3);
+                      
+                      return (
+                        <div 
+                          key={player}
+                          className={`bg-base-200/50 p-4 rounded-xl cursor-pointer hover:bg-base-200 transition-colors ${selectedPlayer === player ? 'ring-2 ring-primary' : ''}`}
+                          onClick={() => setSelectedPlayer(selectedPlayer === player ? null : player)}
+                        >
+                          <div className="font-medium mb-2">{player}</div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {statsList.map((stat, index) => (
+                              <div key={index} className="text-center">
+                                <div className="text-xs opacity-60">{stat.name}</div>
+                                <div className="font-bold">{stat.value}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -838,41 +1036,38 @@ const HoopInsights = ({ setCurrentPage }) => {
               <div className="card bg-base-100 shadow-lg border border-base-200">
                 <div className="card-body">
                   <h3 className="card-title text-secondary">{game.teams.team2.name}</h3>
-                  <div className="overflow-x-auto">
-                    <table className="table table-zebra w-full">
-                      <thead>
-                        <tr>
-                          <th>Player</th>
-                          <th>PTS</th>
-                          <th>REB</th>
-                          <th>AST</th>
-                          <th>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {game.teams.team2.players.map(player => {
-                          const stats = getPlayerStats(player, 'team2');
-                          if (!stats) return null;
-                          
-                          return (
-                            <tr key={player} className={selectedPlayer === player ? 'bg-secondary/10' : ''}>
-                              <td className="font-medium">{player}</td>
-                              <td>{stats.points}</td>
-                              <td>{stats.rebounds}</td>
-                              <td>{stats.assists}</td>
-                              <td>
-                                <button 
-                                  className="btn btn-xs btn-ghost"
-                                  onClick={() => setSelectedPlayer(selectedPlayer === player ? null : player)}
-                                >
-                                  {selectedPlayer === player ? 'Hide' : 'Details'}
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {game.teams.team2.players.map(player => {
+                      const stats = getPlayerStats(player, 'team2');
+                      if (!stats) return null;
+                      
+                      // Get top 3 stats
+                      const statsList = [
+                        { name: 'PTS', value: stats.points },
+                        { name: 'REB', value: stats.rebounds },
+                        { name: 'AST', value: stats.assists },
+                        { name: 'STL', value: stats.steals },
+                        { name: 'BLK', value: stats.blocks }
+                      ].sort((a, b) => b.value - a.value).slice(0, 3);
+                      
+                      return (
+                        <div 
+                          key={player}
+                          className={`bg-base-200/50 p-4 rounded-xl cursor-pointer hover:bg-base-200 transition-colors ${selectedPlayer === player ? 'ring-2 ring-secondary' : ''}`}
+                          onClick={() => setSelectedPlayer(selectedPlayer === player ? null : player)}
+                        >
+                          <div className="font-medium mb-2">{player}</div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {statsList.map((stat, index) => (
+                              <div key={index} className="text-center">
+                                <div className="text-xs opacity-60">{stat.name}</div>
+                                <div className="font-bold">{stat.value}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -911,107 +1106,228 @@ const HoopInsights = ({ setCurrentPage }) => {
                         {/* Progress Charts */}
                         <div className="space-y-4 mb-6">
                           {/* Points */}
-                          <div className="bg-base-200/50 p-4 rounded-xl">
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="text-sm font-medium">Points</span>
-                              <span className="text-primary font-bold">{stats.points}</span>
+                          {stats.points > 0 && (
+                            <div className="bg-base-200/50 p-4 rounded-xl">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">Points</span>
+                                <span className="text-primary font-bold">{stats.points}</span>
+                              </div>
+                              <div className="h-2 bg-base-300 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-primary rounded-full transition-all duration-1000"
+                                  style={{ width: `${(stats.points / (teamLeaders.points.value || 1)) * 100}%` }}
+                                ></div>
+                              </div>
+                              <div className="flex justify-between text-xs opacity-60 mt-1">
+                                <span>Current: {stats.points}</span>
+                                <span>Team High: {teamLeaders.points.player} ({teamLeaders.points.value})</span>
+                              </div>
                             </div>
-                            <div className="h-2 bg-base-300 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-primary rounded-full transition-all duration-1000"
-                                style={{ width: `${(stats.points / (teamLeaders.points.value || 1)) * 100}%` }}
-                              ></div>
-                            </div>
-                            <div className="flex justify-between text-xs opacity-60 mt-1">
-                              <span>Current: {stats.points}</span>
-                              <span>Team High: {teamLeaders.points.player} ({teamLeaders.points.value})</span>
-                            </div>
-                          </div>
+                          )}
 
                           {/* Field Goal Percentage */}
-                          <div className="bg-base-200/50 p-4 rounded-xl">
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="text-sm font-medium">Field Goal %</span>
-                              <span className="text-secondary font-bold">{stats.fgPercentage}%</span>
+                          {stats.fgAttempts > 0 && (
+                            <div className="bg-base-200/50 p-4 rounded-xl">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">Field Goal %</span>
+                                <span className="text-secondary font-bold">{stats.fgPercentage}%</span>
+                              </div>
+                              <div className="h-2 bg-base-300 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-secondary rounded-full transition-all duration-1000"
+                                  style={{ width: `${(stats.fgPercentage / (teamLeaders.fgPercentage.value || 1)) * 100}%` }}
+                                ></div>
+                              </div>
+                              <div className="flex justify-between text-xs opacity-60 mt-1">
+                                <span>{stats.fgMade}/{stats.fgAttempts}</span>
+                                <span>Team High: {teamLeaders.fgPercentage.player} ({teamLeaders.fgPercentage.value}%)</span>
+                              </div>
                             </div>
-                            <div className="h-2 bg-base-300 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-secondary rounded-full transition-all duration-1000"
-                                style={{ width: `${(stats.fgPercentage / (teamLeaders.fgPercentage.value || 1)) * 100}%` }}
-                              ></div>
+                          )}
+
+                          {/* Free Throw Percentage */}
+                          {stats.ftAttempts > 0 && (
+                            <div className="bg-base-200/50 p-4 rounded-xl">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">Free Throw %</span>
+                                <span className="text-accent font-bold">{stats.ftPercentage}%</span>
+                              </div>
+                              <div className="h-2 bg-base-300 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-accent rounded-full transition-all duration-1000"
+                                  style={{ width: `${(stats.ftPercentage / (teamLeaders.ftPercentage.value || 1)) * 100}%` }}
+                                ></div>
+                              </div>
+                              <div className="flex justify-between text-xs opacity-60 mt-1">
+                                <span>{stats.ftMade}/{stats.ftAttempts}</span>
+                                <span>Team High: {teamLeaders.ftPercentage.player} ({teamLeaders.ftPercentage.value}%)</span>
+                              </div>
                             </div>
-                            <div className="flex justify-between text-xs opacity-60 mt-1">
-                              <span>{stats.fgMade}/{stats.fgAttempts}</span>
-                              <span>Team High: {teamLeaders.fgPercentage.player} ({teamLeaders.fgPercentage.value}%)</span>
+                          )}
+
+                          {/* Three Pointers Made */}
+                          {stats.threePtMade > 0 && (
+                            <div className="bg-base-200/50 p-4 rounded-xl">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">Three Pointers Made</span>
+                                <span className="text-info font-bold">{stats.threePtMade}</span>
+                              </div>
+                              <div className="h-2 bg-base-300 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-info rounded-full transition-all duration-1000"
+                                  style={{ width: `${(stats.threePtMade / (teamLeaders.threePtMade?.value || 1)) * 100}%` }}
+                                ></div>
+                              </div>
+                              <div className="flex justify-between text-xs opacity-60 mt-1">
+                                <span>{stats.threePtMade}/{stats.threePtAttempts} ({stats.threePtPercentage}%)</span>
+                                <span>Team High: {teamLeaders.threePtMade?.player} ({teamLeaders.threePtMade?.value || 0})</span>
+                              </div>
                             </div>
-                          </div>
+                          )}
 
                           {/* Rebounds */}
-                          <div className="bg-base-200/50 p-4 rounded-xl">
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="text-sm font-medium">Rebounds</span>
-                              <span className="text-accent font-bold">{stats.rebounds}</span>
+                          {stats.rebounds > 0 && (
+                            <div className="bg-base-200/50 p-4 rounded-xl">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">Rebounds</span>
+                                <span className="text-success font-bold">{stats.rebounds}</span>
+                              </div>
+                              <div className="h-2 bg-base-300 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-success rounded-full transition-all duration-1000"
+                                  style={{ width: `${(stats.rebounds / (teamLeaders.rebounds.value || 1)) * 100}%` }}
+                                ></div>
+                              </div>
+                              <div className="flex justify-between text-xs opacity-60 mt-1">
+                                <span>Current: {stats.rebounds}</span>
+                                <span>Team High: {teamLeaders.rebounds.player} ({teamLeaders.rebounds.value})</span>
+                              </div>
                             </div>
-                            <div className="h-2 bg-base-300 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-accent rounded-full transition-all duration-1000"
-                                style={{ width: `${(stats.rebounds / (teamLeaders.rebounds.value || 1)) * 100}%` }}
-                              ></div>
-                            </div>
-                            <div className="flex justify-between text-xs opacity-60 mt-1">
-                              <span>Current: {stats.rebounds}</span>
-                              <span>Team High: {teamLeaders.rebounds.player} ({teamLeaders.rebounds.value})</span>
-                            </div>
-                          </div>
+                          )}
 
                           {/* Assists */}
-                          <div className="bg-base-200/50 p-4 rounded-xl">
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="text-sm font-medium">Assists</span>
-                              <span className="text-info font-bold">{stats.assists}</span>
+                          {stats.assists > 0 && (
+                            <div className="bg-base-200/50 p-4 rounded-xl">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">Assists</span>
+                                <span className="text-warning font-bold">{stats.assists}</span>
+                              </div>
+                              <div className="h-2 bg-base-300 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-warning rounded-full transition-all duration-1000"
+                                  style={{ width: `${(stats.assists / (teamLeaders.assists.value || 1)) * 100}%` }}
+                                ></div>
+                              </div>
+                              <div className="flex justify-between text-xs opacity-60 mt-1">
+                                <span>Current: {stats.assists}</span>
+                                <span>Team High: {teamLeaders.assists.player} ({teamLeaders.assists.value})</span>
+                              </div>
                             </div>
-                            <div className="h-2 bg-base-300 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-info rounded-full transition-all duration-1000"
-                                style={{ width: `${(stats.assists / (teamLeaders.assists.value || 1)) * 100}%` }}
-                              ></div>
+                          )}
+
+                          {/* Steals */}
+                          {stats.steals > 0 && (
+                            <div className="bg-base-200/50 p-4 rounded-xl">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">Steals</span>
+                                <span className="text-info font-bold">{stats.steals}</span>
+                              </div>
+                              <div className="h-2 bg-base-300 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-info rounded-full transition-all duration-1000"
+                                  style={{ width: `${(stats.steals / (teamLeaders.steals.value || 1)) * 100}%` }}
+                                ></div>
+                              </div>
+                              <div className="flex justify-between text-xs opacity-60 mt-1">
+                                <span>Current: {stats.steals}</span>
+                                <span>Team High: {teamLeaders.steals.player} ({teamLeaders.steals.value})</span>
+                              </div>
                             </div>
-                            <div className="flex justify-between text-xs opacity-60 mt-1">
-                              <span>Current: {stats.assists}</span>
-                              <span>Team High: {teamLeaders.assists.player} ({teamLeaders.assists.value})</span>
+                          )}
+
+                          {/* Blocks */}
+                          {stats.blocks > 0 && (
+                            <div className="bg-base-200/50 p-4 rounded-xl">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">Blocks</span>
+                                <span className="text-success font-bold">{stats.blocks}</span>
+                              </div>
+                              <div className="h-2 bg-base-300 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-success rounded-full transition-all duration-1000"
+                                  style={{ width: `${(stats.blocks / (teamLeaders.blocks.value || 1)) * 100}%` }}
+                                ></div>
+                              </div>
+                              <div className="flex justify-between text-xs opacity-60 mt-1">
+                                <span>Current: {stats.blocks}</span>
+                                <span>Team High: {teamLeaders.blocks.player} ({teamLeaders.blocks.value})</span>
+                              </div>
                             </div>
-                          </div>
+                          )}
+
+                          {/* Turnovers */}
+                          {stats.turnovers > 0 && (
+                            <div className="bg-base-200/50 p-4 rounded-xl">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">Turnovers</span>
+                                <span className="text-error font-bold">{stats.turnovers}</span>
+                              </div>
+                              <div className="h-2 bg-base-300 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-error rounded-full transition-all duration-1000"
+                                  style={{ width: `${(stats.turnovers / (teamLeaders.turnovers?.value || 1)) * 100}%` }}
+                                ></div>
+                              </div>
+                              <div className="flex justify-between text-xs opacity-60 mt-1">
+                                <span>Current: {stats.turnovers}</span>
+                                <span>Team High: {teamLeaders.turnovers?.player} ({teamLeaders.turnovers?.value || 0})</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                         
                         {/* Achievement Badges */}
-                        <div className="grid grid-cols-4 gap-4">
-                          {badges.map((badge, index) => (
-                            <div 
-                              key={index}
-                              className="group relative bg-base-200/50 p-3 rounded-xl text-center cursor-pointer hover:bg-base-200 transition-colors"
-                            >
-                              <div className="text-2xl mb-1">{badge.icon}</div>
-                              <div className="text-xs font-medium truncate">{badge.name}</div>
-                              <div className={`text-xs ${
-                                badge.level === 'Gold' ? 'text-warning' :
-                                badge.level === 'Silver' ? 'text-base-content/60' :
-                                'text-orange-600'
-                              }`}>
-                                {badge.level}
-                              </div>
-                              {/* Tooltip */}
-                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-32 p-2 bg-base-300 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                <div className="font-medium mb-1">{badge.name}</div>
-                                <div className="h-1 bg-base-content/20 rounded-full">
-                                  <div 
-                                    className="h-full bg-primary rounded-full"
-                                    style={{ width: `${badge.progress}%` }}
-                                  ></div>
+                        <div className="relative">
+                          <div className="grid grid-cols-4 gap-4">
+                            {badges.map((badge, index) => (
+                              <div 
+                                key={index}
+                                className="group relative bg-base-200/50 p-3 rounded-xl text-center cursor-pointer hover:bg-base-200 transition-colors"
+                              >
+                                <div className="text-2xl mb-1">{badge.icon}</div>
+                                <div className="text-xs font-medium truncate">{badge.name}</div>
+                                <div className={`text-xs ${
+                                  badge.level === 'Gold' ? 'text-warning' :
+                                  badge.level === 'Silver' ? 'text-base-content/60' :
+                                  'text-orange-600'
+                                }`}>
+                                  {badge.level}
                                 </div>
-                                <div className="mt-1 opacity-60">{badge.progress}% Complete</div>
+                                {/* Enhanced Tooltip */}
+                                <div className={`absolute ${index >= 4 ? 'top-full' : 'bottom-full'} left-1/2 -translate-x-1/2 ${index >= 4 ? 'mt-2' : 'mb-2'} w-48 p-3 bg-base-300 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10`}>
+                                  <div className="font-medium mb-2">{badge.name} ({badge.level})</div>
+                                  <div className="opacity-80 mb-2">{badge.description}</div>
+                                  <div className="h-1 bg-base-content/20 rounded-full">
+                                    <div 
+                                      className="h-full bg-primary rounded-full"
+                                      style={{ width: `${badge.progress}%` }}
+                                    ></div>
+                                  </div>
+                                  <div className="mt-1 opacity-60">{badge.progress}% Complete</div>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
+                          
+                          {/* Badge Calculation Metrics */}
+                          <div className="absolute bottom-0 right-0 p-2 text-xs opacity-50 hover:opacity-100 transition-opacity">
+                            <div className="text-right italic">Badge Metrics:</div>
+                            {badges.map((badge, index) => (
+                              <div key={index} className="text-right">
+                                {badge.name}: {badge.metrics}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     );
@@ -1096,125 +1412,262 @@ const HoopInsights = ({ setCurrentPage }) => {
             {/* Detailed Player Stats */}
             <div className="card bg-base-100 shadow-lg border border-base-200 mb-8">
               <div className="card-body">
-                <h3 className="card-title mb-4">Detailed Player Statistics</h3>
-                <div className="overflow-x-auto">
-                  <table className="table table-zebra w-full">
-                    <thead>
-                      <tr>
-                        <th>Player</th>
-                        <th>Team</th>
-                        <th className="text-center">PTS</th>
-                        <th className="text-center">FG</th>
-                        <th className="text-center">3PT</th>
-                        <th className="text-center">FT</th>
-                        <th className="text-center">REB</th>
-                        <th className="text-center">AST</th>
-                        <th className="text-center">STL</th>
-                        <th className="text-center">BLK</th>
-                        <th className="text-center">TO</th>
-                        <th className="text-center">+/-</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {/* Team 1 Players */}
-                      {game.teams.team1.players.map(player => {
-                        const stats = getPlayerStats(player, 'team1');
-                        const efficiency = stats.points + stats.rebounds + stats.assists + 
-                                        stats.steals + stats.blocks - 
-                                        (stats.fgAttempts - stats.fgMade) - 
-                                        (stats.ftAttempts - stats.ftMade) - 
-                                        stats.turnovers;
-                        return (
-                          <tr key={`team1-${player}`}>
-                            <td className="font-medium">{player}</td>
-                            <td className="text-primary">{game.teams.team1.name}</td>
-                            <td className="text-center font-medium">{stats.points}</td>
-                            <td className="text-center">
-                              {stats.fgMade}/{stats.fgAttempts}
-                              <br />
-                              <span className="text-xs opacity-60">
-                                {stats.fgPercentage}%
-                              </span>
-                            </td>
-                            <td className="text-center">
-                              {stats.threePtMade}/{stats.threePtAttempts}
-                              <br />
-                              <span className="text-xs opacity-60">
-                                {stats.threePtPercentage}%
-                              </span>
-                            </td>
-                            <td className="text-center">
-                              {stats.ftMade}/{stats.ftAttempts}
-                              <br />
-                              <span className="text-xs opacity-60">
-                                {stats.ftPercentage}%
-                              </span>
-                            </td>
-                            <td className="text-center">{stats.rebounds}</td>
-                            <td className="text-center">{stats.assists}</td>
-                            <td className="text-center">{stats.steals}</td>
-                            <td className="text-center">{stats.blocks}</td>
-                            <td className="text-center">{stats.turnovers}</td>
-                            <td className={`text-center font-medium ${
-                              efficiency > 0 ? 'text-success' : 
-                              efficiency < 0 ? 'text-error' : ''
-                            }`}>
-                              {efficiency > 0 ? '+' : ''}{efficiency}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      
-                      {/* Team 2 Players */}
-                      {game.teams.team2.players.map(player => {
-                        const stats = getPlayerStats(player, 'team2');
-                        const efficiency = stats.points + stats.rebounds + stats.assists + 
-                                        stats.steals + stats.blocks - 
-                                        (stats.fgAttempts - stats.fgMade) - 
-                                        (stats.ftAttempts - stats.ftMade) - 
-                                        stats.turnovers;
-                        return (
-                          <tr key={`team2-${player}`}>
-                            <td className="font-medium">{player}</td>
-                            <td className="text-secondary">{game.teams.team2.name}</td>
-                            <td className="text-center font-medium">{stats.points}</td>
-                            <td className="text-center">
-                              {stats.fgMade}/{stats.fgAttempts}
-                              <br />
-                              <span className="text-xs opacity-60">
-                                {stats.fgPercentage}%
-                              </span>
-                            </td>
-                            <td className="text-center">
-                              {stats.threePtMade}/{stats.threePtAttempts}
-                              <br />
-                              <span className="text-xs opacity-60">
-                                {stats.threePtPercentage}%
-                              </span>
-                            </td>
-                            <td className="text-center">
-                              {stats.ftMade}/{stats.ftAttempts}
-                              <br />
-                              <span className="text-xs opacity-60">
-                                {stats.ftPercentage}%
-                              </span>
-                            </td>
-                            <td className="text-center">{stats.rebounds}</td>
-                            <td className="text-center">{stats.assists}</td>
-                            <td className="text-center">{stats.steals}</td>
-                            <td className="text-center">{stats.blocks}</td>
-                            <td className="text-center">{stats.turnovers}</td>
-                            <td className={`text-center font-medium ${
-                              efficiency > 0 ? 'text-success' : 
-                              efficiency < 0 ? 'text-error' : ''
-                            }`}>
-                              {efficiency > 0 ? '+' : ''}{efficiency}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="card-title">Detailed Player Statistics</h3>
+                  <div className="relative group">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 cursor-help opacity-50 hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="absolute right-0 w-64 p-2 bg-base-300 rounded-lg text-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                      <div className="font-medium mb-1">+/- Calculation:</div>
+                      <div className="opacity-80">
+                        Points + Rebounds + Assists + Steals + Blocks - (FG Missed) - (FT Missed) - Turnovers
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Team 1 */}
+                <div className="mb-8">
+                  <h4 className="text-lg font-medium text-primary mb-4">{game.teams.team1.name}</h4>
+                  <div className="overflow-x-auto">
+                    <table className="table table-zebra w-full">
+                      <thead>
+                        <tr>
+                          <th>Player</th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'points',
+                              direction: sortConfig.key === 'points' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            PTS {sortConfig.key === 'points' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                          </th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'fgPercentage',
+                              direction: sortConfig.key === 'fgPercentage' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            FG% {sortConfig.key === 'fgPercentage' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                          </th>
+                          <th className="text-center">3PT</th>
+                          <th className="text-center">FT</th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'rebounds',
+                              direction: sortConfig.key === 'rebounds' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            REB {sortConfig.key === 'rebounds' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                          </th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'assists',
+                              direction: sortConfig.key === 'assists' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            AST {sortConfig.key === 'assists' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                          </th>
+                          <th className="text-center">STL</th>
+                          <th className="text-center">BLK</th>
+                          <th className="text-center">TO</th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'efficiency',
+                              direction: sortConfig.key === 'efficiency' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            +/- {sortConfig.key === 'efficiency' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {game.teams.team1.players.map(player => {
+                          const stats = getPlayerStats(player, 'team1');
+                          const efficiency = stats.points + stats.rebounds + stats.assists + 
+                                          stats.steals + stats.blocks - 
+                                          (stats.fgAttempts - stats.fgMade) - 
+                                          (stats.ftAttempts - stats.ftMade) - 
+                                          stats.turnovers;
+                          return (
+                            <tr key={`team1-${player}`}>
+                              <td className="font-medium">{player}</td>
+                              <td className="text-center font-medium">{stats.points}</td>
+                              <td className="text-center">
+                                {stats.fgMade}/{stats.fgAttempts}
+                                <br />
+                                <span className="text-xs opacity-60">
+                                  {stats.fgPercentage}%
+                                </span>
+                              </td>
+                              <td className="text-center">
+                                {stats.threePtMade}/{stats.threePtAttempts}
+                                <br />
+                                <span className="text-xs opacity-60">
+                                  {stats.threePtPercentage}%
+                                </span>
+                              </td>
+                              <td className="text-center">
+                                {stats.ftMade}/{stats.ftAttempts}
+                                <br />
+                                <span className="text-xs opacity-60">
+                                  {stats.ftPercentage}%
+                                </span>
+                              </td>
+                              <td className="text-center">{stats.rebounds}</td>
+                              <td className="text-center">{stats.assists}</td>
+                              <td className="text-center">{stats.steals}</td>
+                              <td className="text-center">{stats.blocks}</td>
+                              <td className="text-center">{stats.turnovers}</td>
+                              <td className={`text-center font-medium ${
+                                efficiency > 0 ? 'text-success' : 
+                                efficiency < 0 ? 'text-error' : ''
+                              }`}>
+                                {efficiency > 0 ? '+' : ''}{efficiency}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {/* Team 1 Totals */}
+                        <tr className="bg-base-200 font-medium">
+                          <td>Team Totals</td>
+                          <td className="text-center">{getTeamStats('team1').points}</td>
+                          <td className="text-center">
+                            {getTeamStats('team1').fgMade}/{getTeamStats('team1').fgAttempts}
+                            <br />
+                            <span className="text-xs opacity-60">
+                              {((getTeamStats('team1').fgMade/getTeamStats('team1').fgAttempts)*100||0).toFixed(1)}%
+                            </span>
+                          </td>
+                          <td className="text-center">
+                            {getTeamStats('team1').threePtMade}/{getTeamStats('team1').threePtAttempts}
+                            <br />
+                            <span className="text-xs opacity-60">
+                              {((getTeamStats('team1').threePtMade/getTeamStats('team1').threePtAttempts)*100||0).toFixed(1)}%
+                            </span>
+                          </td>
+                          <td className="text-center">
+                            {getTeamStats('team1').ftMade}/{getTeamStats('team1').ftAttempts}
+                            <br />
+                            <span className="text-xs opacity-60">
+                              {((getTeamStats('team1').ftMade/getTeamStats('team1').ftAttempts)*100||0).toFixed(1)}%
+                            </span>
+                          </td>
+                          <td className="text-center">{getTeamStats('team1').rebounds}</td>
+                          <td className="text-center">{getTeamStats('team1').assists}</td>
+                          <td className="text-center">{getTeamStats('team1').steals}</td>
+                          <td className="text-center">{getTeamStats('team1').blocks}</td>
+                          <td className="text-center">{getTeamStats('team1').turnovers}</td>
+                          <td></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Team 2 */}
+                <div>
+                  <h4 className="text-lg font-medium text-secondary mb-4">{game.teams.team2.name}</h4>
+                  <div className="overflow-x-auto">
+                    <table className="table table-zebra w-full">
+                      <thead>
+                        <tr>
+                          <th>Player</th>
+                          <th className="text-center">PTS</th>
+                          <th className="text-center">FG</th>
+                          <th className="text-center">3PT</th>
+                          <th className="text-center">FT</th>
+                          <th className="text-center">REB</th>
+                          <th className="text-center">AST</th>
+                          <th className="text-center">STL</th>
+                          <th className="text-center">BLK</th>
+                          <th className="text-center">TO</th>
+                          <th className="text-center">+/-</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {game.teams.team2.players.map(player => {
+                          const stats = getPlayerStats(player, 'team2');
+                          const efficiency = stats.points + stats.rebounds + stats.assists + 
+                                          stats.steals + stats.blocks - 
+                                          (stats.fgAttempts - stats.fgMade) - 
+                                          (stats.ftAttempts - stats.ftMade) - 
+                                          stats.turnovers;
+                          return (
+                            <tr key={`team2-${player}`}>
+                              <td className="font-medium">{player}</td>
+                              <td className="text-center font-medium">{stats.points}</td>
+                              <td className="text-center">
+                                {stats.fgMade}/{stats.fgAttempts}
+                                <br />
+                                <span className="text-xs opacity-60">
+                                  {stats.fgPercentage}%
+                                </span>
+                              </td>
+                              <td className="text-center">
+                                {stats.threePtMade}/{stats.threePtAttempts}
+                                <br />
+                                <span className="text-xs opacity-60">
+                                  {stats.threePtPercentage}%
+                                </span>
+                              </td>
+                              <td className="text-center">
+                                {stats.ftMade}/{stats.ftAttempts}
+                                <br />
+                                <span className="text-xs opacity-60">
+                                  {stats.ftPercentage}%
+                                </span>
+                              </td>
+                              <td className="text-center">{stats.rebounds}</td>
+                              <td className="text-center">{stats.assists}</td>
+                              <td className="text-center">{stats.steals}</td>
+                              <td className="text-center">{stats.blocks}</td>
+                              <td className="text-center">{stats.turnovers}</td>
+                              <td className={`text-center font-medium ${
+                                efficiency > 0 ? 'text-success' : 
+                                efficiency < 0 ? 'text-error' : ''
+                              }`}>
+                                {efficiency > 0 ? '+' : ''}{efficiency}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {/* Team 2 Totals */}
+                        <tr className="bg-base-200 font-medium">
+                          <td>Team Totals</td>
+                          <td className="text-center">{getTeamStats('team2').points}</td>
+                          <td className="text-center">
+                            {getTeamStats('team2').fgMade}/{getTeamStats('team2').fgAttempts}
+                            <br />
+                            <span className="text-xs opacity-60">
+                              {((getTeamStats('team2').fgMade/getTeamStats('team2').fgAttempts)*100||0).toFixed(1)}%
+                            </span>
+                          </td>
+                          <td className="text-center">
+                            {getTeamStats('team2').threePtMade}/{getTeamStats('team2').threePtAttempts}
+                            <br />
+                            <span className="text-xs opacity-60">
+                              {((getTeamStats('team2').threePtMade/getTeamStats('team2').threePtAttempts)*100||0).toFixed(1)}%
+                            </span>
+                          </td>
+                          <td className="text-center">
+                            {getTeamStats('team2').ftMade}/{getTeamStats('team2').ftAttempts}
+                            <br />
+                            <span className="text-xs opacity-60">
+                              {((getTeamStats('team2').ftMade/getTeamStats('team2').ftAttempts)*100||0).toFixed(1)}%
+                            </span>
+                          </td>
+                          <td className="text-center">{getTeamStats('team2').rebounds}</td>
+                          <td className="text-center">{getTeamStats('team2').assists}</td>
+                          <td className="text-center">{getTeamStats('team2').steals}</td>
+                          <td className="text-center">{getTeamStats('team2').blocks}</td>
+                          <td className="text-center">{getTeamStats('team2').turnovers}</td>
+                          <td></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </div>
