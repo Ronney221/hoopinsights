@@ -8,6 +8,12 @@ const Navbar = ({ setCurrentPage }) => {
   const { isDark, toggleTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
 
+  // Handle page change and scroll to top
+  const handlePageChange = (page) => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setCurrentPage(page);
+  };
+
   // Detect scroll position for navbar appearance change
   useEffect(() => {
     const handleScroll = () => {
@@ -26,7 +32,7 @@ const Navbar = ({ setCurrentPage }) => {
   const handleLogout = async () => {
     try {
       await logout();
-      setCurrentPage('home');
+      handlePageChange('home');
     } catch (error) {
       console.error('Failed to log out:', error);
     }
@@ -68,7 +74,7 @@ const Navbar = ({ setCurrentPage }) => {
           >
             <li className="mb-1">
               <a 
-                onClick={() => setCurrentPage('home')}
+                onClick={() => handlePageChange('home')}
                 className="rounded-lg font-medium"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -79,7 +85,7 @@ const Navbar = ({ setCurrentPage }) => {
             </li>
             <li className="mb-1">
               <a 
-                onClick={() => setCurrentPage('youtube')}
+                onClick={() => handlePageChange('youtube')}
                 className="rounded-lg font-medium"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -91,7 +97,7 @@ const Navbar = ({ setCurrentPage }) => {
             </li>
             <li className="mb-1">
               <a 
-                onClick={() => setCurrentPage('saved-games')}
+                onClick={() => handlePageChange('saved-games')}
                 className="rounded-lg font-medium"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -102,7 +108,7 @@ const Navbar = ({ setCurrentPage }) => {
             </li>
             <li className="mb-1">
               <a 
-                onClick={() => setCurrentPage('season-stats')}
+                onClick={() => handlePageChange('season-stats')}
                 className="rounded-lg font-medium"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -119,7 +125,7 @@ const Navbar = ({ setCurrentPage }) => {
       <div className="navbar-center">
         <button 
           className="btn btn-ghost text-lg sm:text-xl normal-case font-bold tracking-tight hover:bg-transparent"
-          onClick={() => setCurrentPage('home')}
+          onClick={() => handlePageChange('home')}
         >
           <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             HoopInsights
@@ -182,7 +188,7 @@ const Navbar = ({ setCurrentPage }) => {
               <div className="divider my-1"></div>
               <li className="mb-1">
                 <a 
-                  onClick={() => setCurrentPage('saved-games')}
+                  onClick={() => handlePageChange('saved-games')}
                   className="rounded-lg font-medium"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -193,7 +199,7 @@ const Navbar = ({ setCurrentPage }) => {
               </li>
               <li className="mb-1">
                 <a 
-                  onClick={() => setCurrentPage('season-stats')}
+                  onClick={() => handlePageChange('season-stats')}
                   className="rounded-lg font-medium"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -204,7 +210,7 @@ const Navbar = ({ setCurrentPage }) => {
               </li>
               <li className="mb-1">
                 <a 
-                  onClick={() => setCurrentPage('profile')}
+                  onClick={() => handlePageChange('profile')}
                   className="rounded-lg font-medium"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -232,13 +238,13 @@ const Navbar = ({ setCurrentPage }) => {
           <div className="flex gap-2 sm:gap-3 items-center">
             <button 
               className="btn btn-ghost btn-sm sm:btn-md normal-case font-medium rounded-lg hover:bg-primary/10"
-              onClick={() => setCurrentPage('login')}
+              onClick={() => handlePageChange('login')}
             >
               Login
             </button>
             <button 
               className="btn btn-primary btn-sm sm:btn-md normal-case font-medium shadow-md hover:shadow-lg transition-all duration-300 rounded-lg"
-              onClick={() => setCurrentPage('register')}
+              onClick={() => handlePageChange('register')}
             >
               Sign up
             </button>
