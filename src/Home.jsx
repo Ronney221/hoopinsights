@@ -76,11 +76,11 @@ const Home = ({ setCurrentPage }) => {
                   Start Tracking
                 </button>
                 <button
-                  onClick={() => currentUser ? handlePageChange('saved-games') : handlePageChange('login')}
+                  onClick={() => currentUser ? handlePageChange('saved-games') : handlePageChange('register')}
                   className="btn btn-outline btn-lg group relative overflow-hidden"
                 >
                   <span className="absolute inset-0 bg-gradient-to-r from-base-content/0 via-base-content/5 to-base-content/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></span>
-                  {currentUser ? 'View My Games' : 'Sign In'}
+                  {currentUser ? 'View My Games' : 'Sign Up'}
                 </button>
               </div>
             </div>
@@ -784,7 +784,7 @@ const Home = ({ setCurrentPage }) => {
                   >
                     <span className="absolute inset-0 bg-gradient-to-r from-base-content/0 via-base-content/5 to-base-content/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></span>
                     Export Data
-                  </button>
+              </button>
                 </div>
             </div>
           </div>
@@ -1209,9 +1209,7 @@ const Home = ({ setCurrentPage }) => {
           
           <div className="max-w-7xl mx-auto px-6 relative z-10">
             <div className="text-center">
-              <div className="inline-block px-6 py-3 bg-primary/10 rounded-full text-primary font-medium mb-8 transform hover:scale-105 transition-transform">
-                GET STARTED TODAY
-              </div>
+
               <div className="relative inline-block mb-8">
                 <div className="absolute -inset-1 bg-gradient-to-r from-primary to-secondary blur-lg opacity-25"></div>
                 <h2 className="relative text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
