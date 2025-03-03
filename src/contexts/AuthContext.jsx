@@ -72,8 +72,11 @@ export function AuthProvider({ children }) {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
+      // Check if email is verified before allowing login
       if (!user.emailVerified) {
-        throw new Error('Please verify your email before logging in.');
+        // If not verified, sign out immediately and throw an error
+        await signOut(auth); 
+        throw new Error('Please verify your email before logging in. Check your inbox for a verification link.');
       }
       
       return userCredential;
@@ -177,12 +180,41 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setLoading(false);
+      // Only set currentUser if user is verified or if we're in the verification process
+      // This prevents auto-login after registration when email is not verified
+      if (user && !user.emailVerified) {
+        // Update verification status but don't set currentUser
+        // This allows the app to know there's a pending verification
+        setVerificationStatus('unverified');
+        setLoading(false);
+      } else {
+        setCurrentUser(user);
+        setLoading(false);
+        if (user) {
+          setVerificationStatus(user.emailVerified ? 'verified' : 'unverified');
+        } else {
+          setVerificationStatus('pending');
+        }
+      }
     });
 
     return unsubscribe;
   }, []);
+
+  // Add a function to check verification status on demand
+  const checkVerificationStatus = async () => {
+    if (auth.currentUser) {
+      await auth.currentUser.reload();
+      const isVerified = auth.currentUser.emailVerified;
+      setVerificationStatus(isVerified ? 'verified' : 'unverified');
+      if (isVerified && !currentUser) {
+        // If verified and not logged in, set the current user
+        setCurrentUser(auth.currentUser);
+      }
+      return isVerified;
+    }
+    return false;
+  };
 
   const value = {
     currentUser,
@@ -193,7 +225,8 @@ export function AuthProvider({ children }) {
     resendVerificationEmail,
     resetPassword,
     verifyEmail,
-    updateUserProfile
+    updateUserProfile,
+    checkVerificationStatus
   };
 
   return (

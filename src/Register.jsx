@@ -95,6 +95,7 @@ const Register = ({ setCurrentPage }) => {
       await signup(formData.email, formData.password, formData.username);
       setVerificationSent(true);
       success('Account created! Please check your email to verify your account.');
+      // We don't navigate away - we'll show the verification instructions
     } catch (err) {
       showError(err.message || 'Failed to create account');
       setVerificationSent(false);
@@ -116,8 +117,8 @@ const Register = ({ setCurrentPage }) => {
   };
 
   const handleGetStarted = () => {
-    setCurrentPage('home');
-    success('Welcome to HoopInsights! Let\'s get started with your basketball analytics.');
+    setCurrentPage('login');
+    info('Please log in after verifying your email to access HoopInsights.');
   };
 
   if (verificationSent) {
@@ -157,9 +158,14 @@ const Register = ({ setCurrentPage }) => {
                     </svg>
                   </div>
                   <h2 className="text-3xl font-light mb-2">Verify Your Email</h2>
-                  <p className="text-base-content/70 mb-8">We've sent a verification email to <span className="font-medium">{formData.email}</span>. Please check your inbox and click the verification link.</p>
+                  <p className="text-base-content/70 mb-4">We've sent a verification email to <span className="font-medium">{formData.email}</span>. Please check your inbox and click the verification link.</p>
                   
-                  <div className="w-full relative py-6 mb-8">
+                  <div className="alert alert-warning mb-4 shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    <span>You must verify your email before you can log in to HoopInsights.</span>
+                  </div>
+                  
+                  <div className="w-full relative py-6 mb-4">
                     <div className="absolute inset-0 flex items-center justify-center">
                       <svg className="animate-spin h-10 w-10 text-primary/20" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -169,33 +175,32 @@ const Register = ({ setCurrentPage }) => {
                     <div className="text-center text-base-content/50 text-sm">Waiting for verification...</div>
                   </div>
                   
-                  <button 
-                    onClick={handleResendVerification}
-                    className="btn btn-outline btn-primary w-full h-12 rounded-xl"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span>Sending...</span>
-                      </div>
-                    ) : (
-                      'Resend Verification Email'
-                    )}
-                  </button>
-                  
-                  <p className="mt-6 text-base-content/60 text-sm">
-                    Already verified?{' '}
-                    <span
-                      className="text-primary font-medium cursor-pointer hover:underline"
-                      onClick={() => setCurrentPage('login')}
+                  <div className="flex flex-col gap-3 w-full">
+                    <button 
+                      onClick={handleResendVerification}
+                      className="btn btn-outline btn-primary w-full h-12 rounded-xl"
+                      disabled={loading}
                     >
-                      Sign In
-                    </span>
-                  </p>
+                      {loading ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span>Sending...</span>
+                        </div>
+                      ) : (
+                        'Resend Verification Email'
+                      )}
+                    </button>
+                    
+                    <button 
+                      onClick={() => setCurrentPage('login')}
+                      className="btn btn-ghost btn-sm"
+                    >
+                      Go to Login Page
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

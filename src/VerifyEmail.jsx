@@ -4,7 +4,7 @@ import { useNotification } from './contexts/NotificationContext';
 
 const VerifyEmail = ({ setCurrentPage }) => {
   const [verifying, setVerifying] = useState(true);
-  const { verifyEmail } = useAuth();
+  const { verifyEmail, checkVerificationStatus, login } = useAuth();
   const { success, error: showError, warning, info } = useNotification();
 
   useEffect(() => {
@@ -16,8 +16,19 @@ const VerifyEmail = ({ setCurrentPage }) => {
 
         if (actionCode) {
           await verifyEmail(actionCode);
-          success('Email verified successfully!');
-          setCurrentPage('home');
+          
+          // Force a check of verification status to update auth state
+          const isVerified = await checkVerificationStatus();
+          
+          if (isVerified) {
+            success('Email verified successfully!');
+            // After verification, redirect to login page rather than automatically logging in
+            setCurrentPage('login');
+            info('Please log in with your verified email to continue.');
+          } else {
+            warning('Email verification processed, but verification status not updated yet. Please try logging in.');
+            setCurrentPage('login');
+          }
         } else {
           showError('No verification code found in URL');
           setCurrentPage('login');
@@ -31,7 +42,7 @@ const VerifyEmail = ({ setCurrentPage }) => {
     };
 
     verifyEmailWithCode();
-  }, [verifyEmail, setCurrentPage]);
+  }, [verifyEmail, checkVerificationStatus, setCurrentPage, success, showError, warning, info]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-base-100 to-base-200 px-6">
