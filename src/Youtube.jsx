@@ -713,71 +713,144 @@ const Youtube = ({ setCurrentPage }) => {
   };
 
   return (
-    <div className="min-h-screen pt-96 pb-12">
-      <div className="max-w-[75%] mx-auto px-6">
-        {/* Hero Section */}
-        <div className="text-center mb-10">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Basketball Stats Tracker
-          </h1>
-          <p className="text-lg md:text-xl opacity-80 max-w-2xl mx-auto mb-8">
-            Track game stats in real-time while watching basketball videos
-          </p>
+    <div className="min-h-screen bg-gradient-to-b from-base-200 to-base-100 pt-36">
+      {/* Hero Section */}
+      <section className="py-12 relative overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5"></div>
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-pulse delay-700"></div>
+        
+        {/* Basketball Pattern Overlay */}
+        <div className="absolute inset-0 opacity-[0.02]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 30c15.71 0 28.45-12.74 28.45-28.45h3C61.45 17.45 47.45 31.45 30 31.45S-1.45 17.45-1.45 1.55h3C1.55 17.26 14.29 30 30 30z' fill='%23ff6b00' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+          backgroundSize: '60px 60px'
+        }}/>
+        
+        <div className="max-w-7xl mx-auto px-6 relative">
+          <div className="text-center mb-12">
+            <div className="inline-block px-8 py-4 bg-primary/10 rounded-full text-primary text-2xl font-bold mb-8 transform hover:scale-105 transition-transform shadow-lg">
+              GAME STATS TRACKER
+            </div>
           
-         
-          
+            <p className="text-xl opacity-80 max-w-2xl mx-auto mb-12 leading-relaxed">
+              Track game stats in real-time while watching basketball videos. Analyze performance, track progress, and improve your game.
+            </p>
+          </div>
+
           {/* Video URL Input Form */}
           {!videoId && (
-            <form onSubmit={handleSubmit} className="max-w-2xl mx-auto mb-12">
-              <div className="space-y-4">
-                <div className="relative">
-                  <div className={`transition-all duration-300 rounded-xl border ${focused ? 'border-primary shadow-sm' : 'border-base-300'} overflow-hidden bg-base-200/50`}>
-                    <div className="flex items-center px-4 py-3">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        className={`h-5 w-5 mr-4 transition-all duration-300 ${focused ? 'text-primary' : 'text-base-content/40'}`}
-                      >
-                        <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
-                      </svg>
-                      <input
-                        type="text"
-                        placeholder="Paste YouTube URL here (e.g., https://www.youtube.com/watch?v=...)"
-                        value={videoUrl}
-                        onChange={(e) => setVideoUrl(e.target.value)}
-                        onFocus={() => setFocused(true)}
-                        onBlur={() => setFocused(false)}
-                        className="grow bg-transparent border-none py-2 focus:outline-none focus:ring-0 text-base-content placeholder:text-base-content/30"
-                      />
+            <div className="max-w-3xl mx-auto">
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                <form onSubmit={handleSubmit} className="relative bg-base-100 ring-1 ring-base-content/5 rounded-lg p-8">
+                  <div className="space-y-6">
+                    {/* URL Input */}
+                    <div>
+                      <label className="block text-sm font-medium mb-2 opacity-70">YouTube Video URL</label>
+                      <div className="relative">
+                        <div className={`transition-all duration-300 rounded-xl border-2 ${focused ? 'border-primary shadow-lg' : 'border-base-300'} overflow-hidden bg-base-200/50 hover:border-primary/50`}>
+                          <div className="flex items-center px-4 py-3">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              className={`h-5 w-5 mr-4 transition-all duration-300 ${focused ? 'text-primary' : 'text-base-content/40'}`}
+                            >
+                              <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
+                            </svg>
+                            <input
+                              type="text"
+                              placeholder="Paste YouTube URL here (e.g., https://www.youtube.com/watch?v=...)"
+                              value={videoUrl}
+                              onChange={(e) => setVideoUrl(e.target.value)}
+                              onFocus={() => setFocused(true)}
+                              onBlur={() => setFocused(false)}
+                              className="grow bg-transparent border-none py-2 focus:outline-none focus:ring-0 text-base-content placeholder:text-base-content/30"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <button 
+                      type="submit" 
+                      className="relative w-full transition-all duration-300 overflow-hidden group/btn"
+                      disabled={loading}
+                    >
+                      <div className="h-12 bg-gradient-to-r from-primary to-secondary rounded-xl flex items-center justify-center text-white font-medium group-hover/btn:opacity-90 transition-opacity shadow-md">
+                        {loading ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Loading Video</span>
+                          </div>
+                        ) : (
+                          <span>Load Video</span>
+                        )}
+                      </div>
+                      <div className="absolute inset-0 -z-10 bg-gradient-to-r from-primary to-secondary opacity-50 blur-lg transition-all duration-300 scale-90 group-hover/btn:scale-100 group-hover/btn:opacity-60"></div>
+                    </button>
+
+                    {/* Features Preview */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 pt-8 border-t border-base-content/10">
+                      {[
+                        {
+                          icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+                          title: 'Real-time Stats',
+                          description: 'Track game statistics as they happen with our intuitive interface'
+                        },
+                        {
+                          icon: 'M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z',
+                          title: 'Advanced Analytics',
+                          description: 'Get detailed insights and performance metrics for your games'
+                        },
+                        {
+                          icon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2',
+                          title: 'Export & Share',
+                          description: 'Export stats in multiple formats and share with your team'
+                        }
+                      ].map((feature, index) => (
+                        <div key={index} className="bg-base-200/50 p-6 rounded-xl hover:bg-base-200 transition-colors">
+                          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={feature.icon} />
+                            </svg>
+                          </div>
+                          <h3 className="font-bold mb-2">{feature.title}</h3>
+                          <p className="text-sm opacity-70">{feature.description}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Quick Tips */}
+                    <div className="bg-base-200/30 rounded-xl p-4 mt-6">
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="font-medium">Quick Tips</span>
+                      </div>
+                      <ul className="text-sm space-y-1 opacity-70">
+                        <li>• Paste any YouTube basketball game URL to start tracking</li>
+                        <li>• Use keyboard shortcuts for faster stat recording</li>
+                        <li>• Stats are automatically saved as you track</li>
+                      </ul>
                     </div>
                   </div>
-                </div>
-                
-                <button 
-                  type="submit" 
-                  className="relative w-full transition-all duration-300 overflow-hidden group"
-                  disabled={loading}
-                >
-                  <div className="h-12 bg-gradient-to-r from-primary to-secondary rounded-xl flex items-center justify-center text-white font-medium group-hover:opacity-90 transition-opacity shadow-md">
-                    {loading ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span>Loading Video</span>
-                      </div>
-                    ) : (
-                      <span>Load Video</span>
-                    )}
-                  </div>
-                  <div className="absolute inset-0 -z-10 bg-gradient-to-r from-primary to-secondary opacity-50 blur-lg transition-all duration-300 scale-90 group-hover:scale-100 group-hover:opacity-60"></div>
-                </button>
+                </form>
               </div>
-            </form>
+            </div>
           )}
-          
+        </div>
+      </section>
+
+      {/* Rest of the component */}
+      <div className="min-h-screen pt-96 pb-12">
+        <div className="max-w-[75%] mx-auto px-6">
           {/* Main Content when Video is Loaded */}
           {videoId && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -877,7 +950,7 @@ const Youtube = ({ setCurrentPage }) => {
                             </tr>
                           </thead>
                           <tbody>
-                            {stats.slice().reverse().map(stat => (
+                            {[...stats].sort((a, b) => b.timestamp - a.timestamp).map(stat => (
                               <tr key={stat.id} className={`transition-all hover:bg-base-200 ${
                                 stat.type.includes('Made') ? 'bg-success/10' : 
                                 stat.type.includes('Missed') ? 'bg-error/10' : 
@@ -936,79 +1009,160 @@ const Youtube = ({ setCurrentPage }) => {
                     
                     {/* Team/Player Selection */}
                     <div className="form-control mb-4">
-                      <label className="label">
-                        <span className="label-text">Team</span>
-                      </label>
+                      {/* Team Selection Buttons */}
                       <div className="flex gap-2 mb-2">
-                        <div className="flex-1">
-                          <select 
-                            className="select select-bordered w-full" 
-                            value={selectedTeam}
-                            onChange={handleTeamChange}
+                        <div className="flex-1 flex gap-2">
+                          <button 
+                            className={`btn flex-1 ${selectedTeam === 'team1' ? 'btn-primary' : 'btn-outline'}`}
+                            onClick={() => setSelectedTeam('team1')}
                           >
-                            <option value="team1">{teams.team1.name}</option>
-                            <option value="team2">{teams.team2.name}</option>
-                          </select>
+                            {teams.team1.name}
+                          </button>
+                          <button 
+                            className={`btn flex-1 ${selectedTeam === 'team2' ? 'btn-primary' : 'btn-outline'}`}
+                            onClick={() => setSelectedTeam('team2')}
+                          >
+                            {teams.team2.name}
+                          </button>
                         </div>
-                        <input 
-                          type="text"
-                          placeholder="Team name"
-                          className="input input-bordered flex-1"
-                          value={teams[selectedTeam].name}
-                          onChange={(e) => handleTeamNameChange(selectedTeam, e.target.value)}
-                        />
                       </div>
-                      
-                      {/* Add New Player */}
-                      <div className="flex gap-2 mb-4">
-                        <input
-                          type="text"
-                          placeholder="New player name"
-                          className="input input-bordered w-full"
-                          value={newPlayerName}
-                          onChange={(e) => setNewPlayerName(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleAddPlayer()}
-                        />
-                        <button
-                          className="btn btn-primary"
-                          onClick={handleAddPlayer}
-                          disabled={!newPlayerName.trim()}
-                        >
-                          Add
-                        </button>
-                      </div>
-                      
-                      {/* Player Selection Buttons */}
-                      <div className="mb-4">
-                        <label className="label">
-                          <span className="label-text">Select Player</span>
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                          {teams[selectedTeam].players.map(player => (
-                            <div key={player} className="flex items-center">
-                              <button
-                                className={`btn btn-sm ${selectedPlayer === player ? 'btn-primary' : 'btn-outline'}`}
-                                onClick={() => selectPlayerDirectly(player)}
-                              >
-                                {player}
-                              </button>
-                              <button
-                                className="btn btn-ghost btn-xs text-error"
-                                onClick={() => removePlayer(player)}
-                                title={`Remove ${player}`}
-                              >
-                                ×
-                              </button>
+
+                      {/* Player Management */}
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="label-text font-medium">Select Player</label>
+                        <div className="flex gap-2">
+                          <div className="dropdown dropdown-end">
+                            <label tabIndex={0} className="btn btn-ghost btn-xs">
+                              Edit Teams
+                            </label>
+                            <div tabIndex={0} className="dropdown-content z-[1] card card-compact w-64 p-2 shadow bg-base-100 border border-base-200">
+                              <div className="card-body">
+                                <h3 className="font-bold text-lg">Edit Team Names</h3>
+                                <div className="form-control">
+                                  <label className="label">
+                                    <span className="label-text">Team 1 Name</span>
+                                  </label>
+                                  <input 
+                                    type="text"
+                                    className="input input-bordered w-full"
+                                    value={teams.team1.name}
+                                    onChange={(e) => handleTeamNameChange('team1', e.target.value)}
+                                  />
+                                </div>
+                                <div className="form-control">
+                                  <label className="label">
+                                    <span className="label-text">Team 2 Name</span>
+                                  </label>
+                                  <input 
+                                    type="text"
+                                    className="input input-bordered w-full"
+                                    value={teams.team2.name}
+                                    onChange={(e) => handleTeamNameChange('team2', e.target.value)}
+                                  />
+                                </div>
+                              </div>
                             </div>
-                          ))}
-                        </div>
-                        {teams[selectedTeam].players.length === 0 && (
-                          <div className="text-center py-2 text-sm opacity-70">
-                            No players added. Add some players to start tracking stats.
                           </div>
-                        )}
+                          <div className="dropdown dropdown-end">
+                            <label tabIndex={0} className="btn btn-ghost btn-xs">
+                              Add Player
+                            </label>
+                            <div tabIndex={0} className="dropdown-content z-[1] card card-compact w-64 p-2 shadow bg-base-100 border border-base-200">
+                              <div className="card-body p-2">
+                                <div className="form-control">
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="text"
+                                      placeholder="New player name"
+                                      className="input input-bordered input-sm w-full"
+                                      value={newPlayerName}
+                                      onChange={(e) => setNewPlayerName(e.target.value)}
+                                      onKeyPress={(e) => e.key === 'Enter' && handleAddPlayer()}
+                                    />
+                                    <button
+                                      className="btn btn-primary btn-sm"
+                                      onClick={handleAddPlayer}
+                                      disabled={!newPlayerName.trim()}
+                                    >
+                                      Add
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      
+
+                      {/* Player Selection Grid */}
+                      <div className="grid grid-cols-2 gap-2 mb-4">
+                        {teams[selectedTeam].players.map(player => (
+                          <div key={player} className="relative group">
+                            <button
+                              className={`btn btn-sm w-full ${selectedPlayer === player ? 'btn-primary' : 'btn-outline'} pr-8`}
+                              onClick={() => selectPlayerDirectly(player)}
+                            >
+                              {player}
+                            </button>
+                            <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="dropdown dropdown-end">
+                                <label tabIndex={0} className="btn btn-ghost btn-xs">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                  </svg>
+                                </label>
+                                <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 border border-base-200">
+                                  <li>
+                                    <button onClick={() => {
+                                      const newName = prompt('Enter new name for ' + player);
+                                      if (newName && newName.trim()) {
+                                        const updatedPlayers = [...teams[selectedTeam].players];
+                                        const playerIndex = updatedPlayers.indexOf(player);
+                                        updatedPlayers[playerIndex] = newName.trim();
+                                        setTeams(prev => ({
+                                          ...prev,
+                                          [selectedTeam]: {
+                                            ...prev[selectedTeam],
+                                            players: updatedPlayers
+                                          }
+                                        }));
+                                        if (selectedPlayer === player) {
+                                          setSelectedPlayer(newName.trim());
+                                        }
+                                        // Update stats with new player name
+                                        setStats(prev => prev.map(stat => 
+                                          stat.player === player && stat.team === selectedTeam
+                                            ? { ...stat, player: newName.trim() }
+                                            : stat
+                                        ));
+                                      }
+                                    }}>
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                      </svg>
+                                      Edit Name
+                                    </button>
+                                  </li>
+                                  <li>
+                                    <button onClick={() => removePlayer(player)} className="text-error">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                      Remove
+                                    </button>
+                                  </li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {teams[selectedTeam].players.length === 0 && (
+                        <div className="text-center py-4 text-sm opacity-70 bg-base-200/50 rounded-lg mt-2">
+                          No players added. Click the "Add Player" button to start.
+                        </div>
+                      )}
+
                       {/* Current Selected Player */}
                       {selectedPlayer && (
                         <div className="bg-base-200 p-3 rounded-lg mb-4">
@@ -1020,131 +1174,131 @@ const Youtube = ({ setCurrentPage }) => {
                           </div>
                         </div>
                       )}
-                    </div>
-                    
-                    {/* Stat Buttons */}
-                    <div className="space-y-2">
-                      <div className="stats-group">
-                        <h3 className="text-sm font-medium uppercase opacity-70 mb-2">Field Goals</h3>
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={() => recordStat('FG Made')}
-                            className="btn flex-1 bg-success hover:bg-success/80 border-success text-white"
-                            disabled={!selectedPlayer}
-                          >
-                            Made
-                          </button>
-                          <button 
-                            onClick={() => recordStat('FG Missed')}
-                            className="btn flex-1 bg-error hover:bg-error/80 border-error text-white"
-                            disabled={!selectedPlayer}
-                          >
-                            Missed
-                          </button>
+
+                      {/* Stat Buttons */}
+                      <div className="space-y-2">
+                        <div className="stats-group">
+                          <h3 className="text-sm font-medium uppercase opacity-70 mb-2">Field Goals</h3>
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => recordStat('FG Made')}
+                              className="btn flex-1 bg-success hover:bg-success/80 border-success text-white"
+                              disabled={!selectedPlayer}
+                            >
+                              Made
+                            </button>
+                            <button 
+                              onClick={() => recordStat('FG Missed')}
+                              className="btn flex-1 bg-error hover:bg-error/80 border-error text-white"
+                              disabled={!selectedPlayer}
+                            >
+                              Missed
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div className="stats-group">
+                          <h3 className="text-sm font-medium uppercase opacity-70 mb-2">3-Pointers</h3>
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => recordStat('3PT Made')}
+                              className="btn flex-1 bg-success hover:bg-success/80 border-success text-white"
+                              disabled={!selectedPlayer}
+                            >
+                              Made
+                            </button>
+                            <button 
+                              onClick={() => recordStat('3PT Missed')}
+                              className="btn flex-1 bg-error hover:bg-error/80 border-error text-white"
+                              disabled={!selectedPlayer}
+                            >
+                              Missed
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div className="stats-group">
+                          <h3 className="text-sm font-medium uppercase opacity-70 mb-2">Free Throws</h3>
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => recordStat('FT Made')}
+                              className="btn flex-1 bg-success hover:bg-success/80 border-success text-white"
+                              disabled={!selectedPlayer}
+                            >
+                              Made
+                            </button>
+                            <button 
+                              onClick={() => recordStat('FT Missed')}
+                              className="btn flex-1 bg-error hover:bg-error/80 border-error text-white"
+                              disabled={!selectedPlayer}
+                            >
+                              Missed
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div className="stats-group">
+                          <h3 className="text-sm font-medium uppercase opacity-70 mb-2">Other Stats</h3>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button 
+                              onClick={() => recordStat('Rebound')}
+                              className="btn btn-outline"
+                              disabled={!selectedPlayer}
+                            >
+                              Rebound
+                            </button>
+                            <button 
+                              onClick={() => recordStat('Assist')}
+                              className="btn btn-outline"
+                              disabled={!selectedPlayer}
+                            >
+                              Assist
+                            </button>
+                            <button 
+                              onClick={() => recordStat('Block')}
+                              className="btn btn-outline"
+                              disabled={!selectedPlayer}
+                            >
+                              Block
+                            </button>
+                            <button 
+                              onClick={() => recordStat('Steal')}
+                              className="btn btn-outline"
+                              disabled={!selectedPlayer}
+                            >
+                              Steal
+                            </button>
+                            <button 
+                              onClick={() => recordStat('Turnover')}
+                              className="btn btn-outline"
+                              disabled={!selectedPlayer}
+                            >
+                              Turnover
+                            </button>
+                            <button 
+                              onClick={() => recordStat('Foul')}
+                              className="btn btn-outline"
+                              disabled={!selectedPlayer}
+                            >
+                              Foul
+                            </button>
+                          </div>
                         </div>
                       </div>
                       
-                      <div className="stats-group">
-                        <h3 className="text-sm font-medium uppercase opacity-70 mb-2">3-Pointers</h3>
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={() => recordStat('3PT Made')}
-                            className="btn flex-1 bg-success hover:bg-success/80 border-success text-white"
-                            disabled={!selectedPlayer}
-                          >
-                            Made
-                          </button>
-                          <button 
-                            onClick={() => recordStat('3PT Missed')}
-                            className="btn flex-1 bg-error hover:bg-error/80 border-error text-white"
-                            disabled={!selectedPlayer}
-                          >
-                            Missed
-                          </button>
-                        </div>
+                      {/* Undo button */}
+                      <div className="mt-6 border-t border-base-300 pt-4">
+                        <button 
+                          onClick={undoLastStat}
+                          className="btn btn-outline btn-block"
+                          disabled={stats.length === 0}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                          </svg>
+                          Undo Last Stat
+                        </button>
                       </div>
-                      
-                      <div className="stats-group">
-                        <h3 className="text-sm font-medium uppercase opacity-70 mb-2">Free Throws</h3>
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={() => recordStat('FT Made')}
-                            className="btn flex-1 bg-success hover:bg-success/80 border-success text-white"
-                            disabled={!selectedPlayer}
-                          >
-                            Made
-                          </button>
-                          <button 
-                            onClick={() => recordStat('FT Missed')}
-                            className="btn flex-1 bg-error hover:bg-error/80 border-error text-white"
-                            disabled={!selectedPlayer}
-                          >
-                            Missed
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div className="stats-group">
-                        <h3 className="text-sm font-medium uppercase opacity-70 mb-2">Other Stats</h3>
-                        <div className="grid grid-cols-2 gap-2">
-                          <button 
-                            onClick={() => recordStat('Rebound')}
-                            className="btn btn-outline"
-                            disabled={!selectedPlayer}
-                          >
-                            Rebound
-                          </button>
-                          <button 
-                            onClick={() => recordStat('Assist')}
-                            className="btn btn-outline"
-                            disabled={!selectedPlayer}
-                          >
-                            Assist
-                          </button>
-                          <button 
-                            onClick={() => recordStat('Block')}
-                            className="btn btn-outline"
-                            disabled={!selectedPlayer}
-                          >
-                            Block
-                          </button>
-                          <button 
-                            onClick={() => recordStat('Steal')}
-                            className="btn btn-outline"
-                            disabled={!selectedPlayer}
-                          >
-                            Steal
-                          </button>
-                          <button 
-                            onClick={() => recordStat('Turnover')}
-                            className="btn btn-outline"
-                            disabled={!selectedPlayer}
-                          >
-                            Turnover
-                          </button>
-                          <button 
-                            onClick={() => recordStat('Foul')}
-                            className="btn btn-outline"
-                            disabled={!selectedPlayer}
-                          >
-                            Foul
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Undo button */}
-                    <div className="mt-6 border-t border-base-300 pt-4">
-                      <button 
-                        onClick={undoLastStat}
-                        className="btn btn-outline btn-block"
-                        disabled={stats.length === 0}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                        </svg>
-                        Undo Last Stat
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -1157,157 +1311,198 @@ const Youtube = ({ setCurrentPage }) => {
             <div className="mt-10 mb-16">
               <h2 className="text-2xl font-bold mb-6 text-center">Player Statistics</h2>
               
-              <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-200">
-                <div className="card-body p-0">
-                  <div className="overflow-x-auto">
-                    <table className="table table-zebra w-full">
-                      <thead className="sticky top-0 bg-base-100 z-10 shadow-sm text-xs">
-                        <tr>
-                          {/* Player Info */}
-                          <th className="bg-base-200/50">Team</th>
-                          <th className="bg-base-200/50">Player</th>
-                          
-                          {/* Core Stats */}
-                          <th>PTS</th>
-                          <th>REB</th>
-                          <th>AST</th>
-                          <th>STL</th>
-                          <th>BLK</th>
-                          <th>TO</th>
-                          <th>PF</th>
-                          
-                          {/* Shooting Stats */}
-                          <th className="bg-base-200/30">FG</th>
-                          <th className="bg-base-200/30">2PT</th>
-                          <th className="bg-base-200/30">3PT</th>
-                          <th className="bg-base-200/30">FT</th>
-                          
-                          {/* Percentages */}
-                          <th className="bg-primary/10">FG%</th>
-                          <th className="bg-primary/10">2PT%</th>
-                          <th className="bg-primary/10">3PT%</th>
-                          <th className="bg-primary/10">FT%</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {getPlayersWithStats().map(playerStat => (
-                          <tr key={`${playerStat.team}|${playerStat.name}`} className="hover:bg-base-200/50 transition-colors">
-                            {/* Player Info */}
-                            <td className="font-medium bg-base-200/50">{playerStat.teamName}</td>
-                            <td className="font-medium bg-base-200/50">{playerStat.name}</td>
-                            
-                            {/* Core Stats */}
-                            <td className="font-bold">{playerStat.points}</td>
-                            <td>{playerStat.rebounds}</td>
-                            <td>{playerStat.assists}</td>
-                            <td>{playerStat.steals}</td>
-                            <td>{playerStat.blocks}</td>
-                            <td>{playerStat.turnovers}</td>
-                            <td>{playerStat.fouls}</td>
-                            
-                            {/* Shooting Stats */}
-                            <td className="bg-base-200/30">{playerStat.fgMade}/{playerStat.fgAttempts}</td>
-                            <td className="bg-base-200/30">{playerStat.twoPtMade}/{playerStat.twoPtAttempts}</td>
-                            <td className="bg-base-200/30">{playerStat.threePtMade}/{playerStat.threePtAttempts}</td>
-                            <td className="bg-base-200/30">{playerStat.ftMade}/{playerStat.ftAttempts}</td>
-                            
-                            {/* Percentages */}
-                            <td className={`bg-primary/10 font-medium ${playerStat.fgPercentage >= 50 ? 'text-success' : playerStat.fgPercentage <= 30 && playerStat.fgAttempts > 0 ? 'text-error' : ''}`}>
-                              {playerStat.fgPercentage}%
-                            </td>
-                            <td className={`bg-primary/10 font-medium ${playerStat.twoPtPercentage >= 50 ? 'text-success' : playerStat.twoPtPercentage <= 30 && playerStat.twoPtAttempts > 0 ? 'text-error' : ''}`}>
-                              {playerStat.twoPtPercentage}%
-                            </td>
-                            <td className={`bg-primary/10 font-medium ${playerStat.threePtPercentage >= 40 ? 'text-success' : playerStat.threePtPercentage <= 25 && playerStat.threePtAttempts > 0 ? 'text-error' : ''}`}>
-                              {playerStat.threePtPercentage}%
-                            </td>
-                            <td className={`bg-primary/10 font-medium ${playerStat.ftPercentage >= 75 ? 'text-success' : playerStat.ftPercentage <= 50 && playerStat.ftAttempts > 0 ? 'text-error' : ''}`}>
-                              {playerStat.ftPercentage}%
-                            </td>
-                          </tr>
-                        ))}
-                        {getPlayersWithStats().length === 0 && (
+              <div className="space-y-6">
+                {/* Team 1 Stats */}
+                <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-200">
+                  <div className="card-body p-0">
+                    <div className="bg-primary/5 p-4">
+                      <h3 className="font-bold text-lg text-primary">{teams.team1.name}</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="table table-zebra w-full">
+                        <thead className="sticky top-0 bg-base-100 z-10 shadow-sm text-xs">
                           <tr>
-                            <td colSpan="17" className="text-center py-4">No player stats available</td>
+                            <th className="bg-base-200/50">Player</th>
+                            <th>PTS</th>
+                            <th>REB</th>
+                            <th>AST</th>
+                            <th>STL</th>
+                            <th>BLK</th>
+                            <th>TO</th>
+                            <th>PF</th>
+                            <th>FG</th>
+                            <th>2PT</th>
+                            <th>3PT</th>
+                            <th>FT</th>
+                            <th>FG%</th>
+                            <th>2PT%</th>
+                            <th>3PT%</th>
+                            <th>FT%</th>
                           </tr>
-                        )}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {getPlayersWithStats()
+                            .filter(playerStat => playerStat.team === 'team1')
+                            .map(playerStat => (
+                              <tr key={`${playerStat.team}|${playerStat.name}`} className="hover:bg-base-200/50 transition-colors">
+                                <td className="font-medium">{playerStat.name}</td>
+                                <td className="font-bold">{playerStat.points}</td>
+                                <td>{playerStat.rebounds}</td>
+                                <td>{playerStat.assists}</td>
+                                <td>{playerStat.steals}</td>
+                                <td>{playerStat.blocks}</td>
+                                <td>{playerStat.turnovers}</td>
+                                <td>{playerStat.fouls}</td>
+                                <td>{playerStat.fgMade}/{playerStat.fgAttempts}</td>
+                                <td>{playerStat.twoPtMade}/{playerStat.twoPtAttempts}</td>
+                                <td>{playerStat.threePtMade}/{playerStat.threePtAttempts}</td>
+                                <td>{playerStat.ftMade}/{playerStat.ftAttempts}</td>
+                                <td className={playerStat.fgPercentage >= 50 ? 'text-success' : playerStat.fgPercentage <= 30 ? 'text-error' : ''}>
+                                  {playerStat.fgPercentage}%
+                                </td>
+                                <td className={playerStat.twoPtPercentage >= 50 ? 'text-success' : playerStat.twoPtPercentage <= 30 ? 'text-error' : ''}>
+                                  {playerStat.twoPtPercentage}%
+                                </td>
+                                <td className={playerStat.threePtPercentage >= 40 ? 'text-success' : playerStat.threePtPercentage <= 25 ? 'text-error' : ''}>
+                                  {playerStat.threePtPercentage}%
+                                </td>
+                                <td className={playerStat.ftPercentage >= 75 ? 'text-success' : playerStat.ftPercentage <= 50 ? 'text-error' : ''}>
+                                  {playerStat.ftPercentage}%
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                  
-                  <div className="px-4 py-2 text-xs text-center opacity-70">
-                    <span className="mr-4">Scroll horizontally to see all statistics</span>
-                    <span className="inline-block">
-                      <span className="inline-block w-3 h-3 rounded-full bg-success mr-1"></span> Good
-                      <span className="inline-block w-3 h-3 rounded-full bg-error mx-1 ml-3"></span> Poor
-                    </span>
+                </div>
+
+                {/* Team 2 Stats */}
+                <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-200">
+                  <div className="card-body p-0">
+                    <div className="bg-secondary/5 p-4">
+                      <h3 className="font-bold text-lg text-secondary">{teams.team2.name}</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="table table-zebra w-full">
+                        <thead className="sticky top-0 bg-base-100 z-10 shadow-sm text-xs">
+                          <tr>
+                            <th className="bg-base-200/50">Player</th>
+                            <th>PTS</th>
+                            <th>REB</th>
+                            <th>AST</th>
+                            <th>STL</th>
+                            <th>BLK</th>
+                            <th>TO</th>
+                            <th>PF</th>
+                            <th>FG</th>
+                            <th>2PT</th>
+                            <th>3PT</th>
+                            <th>FT</th>
+                            <th>FG%</th>
+                            <th>2PT%</th>
+                            <th>3PT%</th>
+                            <th>FT%</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {getPlayersWithStats()
+                            .filter(playerStat => playerStat.team === 'team2')
+                            .map(playerStat => (
+                              <tr key={`${playerStat.team}|${playerStat.name}`} className="hover:bg-base-200/50 transition-colors">
+                                <td className="font-medium">{playerStat.name}</td>
+                                <td className="font-bold">{playerStat.points}</td>
+                                <td>{playerStat.rebounds}</td>
+                                <td>{playerStat.assists}</td>
+                                <td>{playerStat.steals}</td>
+                                <td>{playerStat.blocks}</td>
+                                <td>{playerStat.turnovers}</td>
+                                <td>{playerStat.fouls}</td>
+                                <td>{playerStat.fgMade}/{playerStat.fgAttempts}</td>
+                                <td>{playerStat.twoPtMade}/{playerStat.twoPtAttempts}</td>
+                                <td>{playerStat.threePtMade}/{playerStat.threePtAttempts}</td>
+                                <td>{playerStat.ftMade}/{playerStat.ftAttempts}</td>
+                                <td className={playerStat.fgPercentage >= 50 ? 'text-success' : playerStat.fgPercentage <= 30 ? 'text-error' : ''}>
+                                  {playerStat.fgPercentage}%
+                                </td>
+                                <td className={playerStat.twoPtPercentage >= 50 ? 'text-success' : playerStat.twoPtPercentage <= 30 ? 'text-error' : ''}>
+                                  {playerStat.twoPtPercentage}%
+                                </td>
+                                <td className={playerStat.threePtPercentage >= 40 ? 'text-success' : playerStat.threePtPercentage <= 25 ? 'text-error' : ''}>
+                                  {playerStat.threePtPercentage}%
+                                </td>
+                                <td className={playerStat.ftPercentage >= 75 ? 'text-success' : playerStat.ftPercentage <= 50 ? 'text-error' : ''}>
+                                  {playerStat.ftPercentage}%
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
+                </div>
+              </div>
+
+              <div className="text-center mt-4 text-sm opacity-70">
+                <div className="inline-flex gap-4">
+                  <span>
+                    <span className="inline-block w-3 h-3 rounded-full bg-success mr-1"></span> Good
+                  </span>
+                  <span>
+                    <span className="inline-block w-3 h-3 rounded-full bg-error mr-1"></span> Needs Improvement
+                  </span>
                 </div>
               </div>
             </div>
           )}
           
-          {/* Game Title and Save Button - Moved below stats */}
+          {/* Game Management - Compact Version */}
           {videoId && (
-            <div className="card bg-base-100 shadow-xl overflow-hidden mt-10">
-              <div className="card-body">
-                <h2 className="card-title">Game Management</h2>
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text">Game Title</span>
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    <input
-                      type="text"
-                      placeholder="Enter game title (e.g., Team A vs Team B - 2023)"
-                      className="input input-bordered flex-grow"
-                      value={gameTitle}
-                      onChange={(e) => setGameTitle(e.target.value)}
-                    />
-                    <div className="flex gap-2">
+            <div className="card bg-base-100  overflow-hidden mt-10">
+              <div className="card-body p-3">
+                <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
+                  <div className="w-full sm:w-96">
+                    <div className="join w-full">
+                      <input
+                        type="text"
+                        placeholder="Enter game title..."
+                        className="input input-bordered input-lg join-item w-full"
+                        value={gameTitle}
+                        onChange={(e) => setGameTitle(e.target.value)}
+                      />
                       <button
-                        className={`btn ${isSaved ? 'btn-success' : 'btn-primary'}`}
+                        className={`btn btn-lg join-item ${isSaved ? 'btn-success' : 'btn-primary'}`}
                         onClick={saveGameToDatabase}
-                        disabled={savingToDb || !gameTitle.trim() || stats.length === 0}
+                        disabled={savingToDb || !gameTitle.trim() || stats.length === 0 || !currentUser}
                       >
                         {savingToDb ? (
-                          <>
-                            <span className="loading loading-spinner loading-xs"></span>
-                            Saving...
-                          </>
+                          <span className="loading loading-spinner loading-sm"></span>
                         ) : isSaved ? (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            Saved!
-                          </>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                          </svg>
                         ) : (
-                          "Save Game"
+                          "Save"
                         )}
                       </button>
-                      <button
-                        className="btn btn-error"
-                        onClick={clearStats}
-                        disabled={stats.length === 0}
-                      >
-                        Clear Stats
-                      </button>
                     </div>
+                    {!currentUser && (
+                      <p className="text-xs mt-1 opacity-70">Sign in to save game stats</p>
+                    )}
                   </div>
-                  <div className="flex justify-between items-center mt-2">
-                    <p className="text-xs opacity-70">
-                      Save your game stats to view later. You need to be logged in to save games.
-                    </p>
-                    <button 
-                      className="btn btn-outline btn-sm"
-                      onClick={() => setCurrentPage('saved-games')}
+                  <div className="flex gap-2">
+                    <button
+                      className="btn btn-lg btn-error"
+                      onClick={clearStats}
+                      disabled={stats.length === 0}
+                      title="Clear all stats"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
-                      View Saved Games
+                      Clear Stats
                     </button>
+
                   </div>
                 </div>
               </div>
@@ -1337,7 +1532,7 @@ const Youtube = ({ setCurrentPage }) => {
           )}
           
            {/* Navigation buttons */}
-           <div className="flex justify-center mt-2 mb-8 space-x-4">
+           <div className="flex justify-center mt-2 mb-8 space-x-4 pt-8">
             <button
               onClick={() => setCurrentPage('home')}
               className="btn btn-outline btn-sm px-4 group flex items-center gap-2 hover:gap-3 transition-all"
@@ -1352,7 +1547,7 @@ const Youtube = ({ setCurrentPage }) => {
               className="btn btn-outline btn-sm px-4 group flex items-center gap-2 hover:gap-3 transition-all"
             >
               Saved Games
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </button>

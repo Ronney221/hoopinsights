@@ -755,28 +755,28 @@ const SeasonStats = ({ setCurrentPage }) => {
           <div className="text-center mb-12">
             <div className="inline-block px-4 py-2 bg-primary/10 rounded-full text-primary font-medium mb-6 transform hover:scale-105 transition-transform">
               YOUR SEASONS
-            </div>
+        </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Season Management</h2>
             <p className="text-xl opacity-80 max-w-2xl mx-auto mb-8">
               Select or create a season to track your basketball statistics and progress.
             </p>
-          </div>
+                </div>
 
-          {seasons.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="opacity-60 mb-4">No seasons yet</p>
-              <button 
+                {seasons.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="opacity-60 mb-4">No seasons yet</p>
+                    <button 
                 className="btn btn-primary"
-                onClick={goToSavedGames}
-              >
-                Create Your First Season
-              </button>
-            </div>
-          ) : (
+                      onClick={goToSavedGames}
+                    >
+                      Create Your First Season
+                    </button>
+                  </div>
+                ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {seasons.map(season => (
-                <div 
-                  key={season._id}
+                    {seasons.map(season => (
+                      <div 
+                        key={season._id}
                   className={`relative group transform hover:scale-[1.02] transition-all duration-300 ${
                     selectedSeasonId === season._id ? 'ring-2 ring-primary' : ''
                   }`}
@@ -786,31 +786,31 @@ const SeasonStats = ({ setCurrentPage }) => {
                     className={`relative p-6 bg-base-100/50 backdrop-blur-sm rounded-lg cursor-pointer ${
                       selectedSeasonId === season._id ? 'bg-primary/10' : ''
                     }`}
-                    onClick={() => setSelectedSeasonId(season._id)}
-                  >
+                        onClick={() => setSelectedSeasonId(season._id)}
+                      >
                     <div className="flex justify-between items-start">
-                      <div>
+                        <div>
                         <h3 className="text-lg font-bold mb-2">{season.name}</h3>
                         <p className="text-sm opacity-70">
-                          {season.gameIds ? season.gameIds.length : 0} game{season.gameIds && season.gameIds.length !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-                      <button 
+                            {season.gameIds ? season.gameIds.length : 0} game{season.gameIds && season.gameIds.length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        <button 
                         className="btn btn-ghost btn-sm btn-circle"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteSeason(season._id);
-                        }}
-                        title="Delete season"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteSeason(season._id);
+                          }}
+                          title="Delete season"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
+                          </svg>
+                        </button>
                     </div>
                   </div>
-                </div>
-              ))}
+                      </div>
+                    ))}
 
               {/* Add Season Button */}
               <div className="relative group transform hover:scale-[1.02] transition-all duration-300">
@@ -829,7 +829,7 @@ const SeasonStats = ({ setCurrentPage }) => {
               </div>
             </div>
           )}
-        </div>
+          </div>
       </section>
 
       {/* Season Stats Section */}
@@ -870,7 +870,7 @@ const SeasonStats = ({ setCurrentPage }) => {
                   <div className="mb-8">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm font-medium">Season Progress</span>
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                         <span className="text-primary font-bold">{seasonGames.length}</span>
                         <span className="text-sm opacity-60">Games</span>
                       </div>
@@ -881,7 +881,7 @@ const SeasonStats = ({ setCurrentPage }) => {
                         style={{ width: `${(seasonGames.length / (selectedSeason?.targetGames || 82)) * 100}%` }}
                       >
                         <div className="w-full h-full opacity-75 bg-[length:10px_10px] bg-[linear-gradient(45deg,rgba(0,0,0,.2)25%,transparent_25%,transparent_50%,rgba(0,0,0,.2)50%,rgba(0,0,0,.2)75%,transparent_75%,transparent)] animate-[progress-bar-stripes_1s_linear_infinite]"></div>
-                      </div>
+                    </div>
                     </div>
                   </div>
 
@@ -894,12 +894,12 @@ const SeasonStats = ({ setCurrentPage }) => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={stat.icon} />
                           </svg>
                           <div className="text-sm opacity-60">{stat.label}</div>
-                        </div>
+                  </div>
                         <div className="text-xl font-bold">{stat.value}</div>
                       </div>
                     ))}
-                  </div>
-
+                </div>
+                
                   {/* Recent Games Preview */}
                   <div className="mt-8">
                     <h4 className="font-bold mb-4 flex items-center justify-between">
@@ -946,14 +946,14 @@ const SeasonStats = ({ setCurrentPage }) => {
                 <div className="relative bg-base-100 rounded-2xl shadow-2xl p-6 transform hover:scale-[1.02] transition-transform">
                   <h3 className="text-2xl font-bold mb-6 flex items-center justify-between">
                     <span>Performance Trends</span>
-                    <div className="flex gap-2">
-                      <button 
+                <div className="flex gap-2">
+                    <button 
                         className={`btn btn-sm ${timeframe === 'week' ? 'btn-primary' : 'btn-ghost'}`}
                         onClick={() => setTimeframe('week')}
-                      >
+                    >
                         Week
-                      </button>
-                      <button 
+                    </button>
+                  <button 
                         className={`btn btn-sm ${timeframe === 'month' ? 'btn-primary' : 'btn-ghost'}`}
                         onClick={() => setTimeframe('month')}
                       >
@@ -964,13 +964,13 @@ const SeasonStats = ({ setCurrentPage }) => {
                         onClick={() => setTimeframe('season')}
                       >
                         Season
-                      </button>
-                    </div>
+                  </button>
+                </div>
                   </h3>
-                  
+              
                   {/* Points Trend */}
                   <div className="bg-base-200/50 p-4 rounded-xl mb-6">
-                    <div className="flex justify-between items-center mb-4">
+              <div className="flex justify-between items-center mb-4">
                       <div>
                         <div className="font-medium">Points Per Game</div>
                         <div className="text-2xl font-bold text-primary">
@@ -1027,13 +1027,13 @@ const SeasonStats = ({ setCurrentPage }) => {
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="font-bold">Advanced Stats</h4>
-                      <button 
+                  <button 
                         className="btn btn-ghost btn-xs"
                         onClick={() => setShowAdvancedStats(!showAdvancedStats)}
                       >
                         {showAdvancedStats ? 'Hide Details' : 'Show Details'}
-                      </button>
-                    </div>
+                  </button>
+                </div>
                     <div className="grid grid-cols-2 gap-4">
                       {advancedStatsItems.map((stat, index) => (
                         <div key={index} className="bg-base-200/50 p-4 rounded-xl">
@@ -1047,8 +1047,8 @@ const SeasonStats = ({ setCurrentPage }) => {
                         </div>
                       ))}
                     </div>
-                  </div>
-
+              </div>
+              
                   {/* Shooting Stats */}
                   <div className="space-y-4">
                     {[
@@ -1090,7 +1090,7 @@ const SeasonStats = ({ setCurrentPage }) => {
                               <span className={`text-xs ${Number(lastGamePercentage) > Number(percentage) ? 'text-success' : 'text-error'}`}>
                                 ({lastGamePercentage}% last game)
                               </span>
-                            </div>
+                  </div>
                           </div>
                           <div className="h-2 bg-base-300 rounded-full overflow-hidden">
                             <div 
@@ -1098,7 +1098,7 @@ const SeasonStats = ({ setCurrentPage }) => {
                               style={{ width: `${percentage}%` }}
                             >
                               <div className="w-full h-full opacity-75 bg-[length:10px_10px] bg-[linear-gradient(45deg,rgba(0,0,0,.2)25%,transparent_25%,transparent_50%,rgba(0,0,0,.2)50%,rgba(0,0,0,.2)75%,transparent_75%,transparent)] animate-[progress-bar-stripes_1s_linear_infinite]"></div>
-                            </div>
+                  </div>
                           </div>
                         </div>
                       );
@@ -1125,14 +1125,14 @@ const SeasonStats = ({ setCurrentPage }) => {
                   <h3 className="text-xl font-bold mb-6">Season Totals</h3>
                   <div className="overflow-x-auto">
                     <table className="table w-full">
-                      <thead>
+                    <thead>
                         <tr>
                           <th>Stat</th>
                           <th>Total</th>
                           <th>Per Game</th>
                         </tr>
-                      </thead>
-                      <tbody>
+                    </thead>
+                    <tbody>
                         {[
                           { label: 'Points', getValue: (game) => getTeamStats(game, 'team1').points },
                           { label: 'Rebounds', getValue: (game) => getTeamStats(game, 'team1').rebounds },
@@ -1205,13 +1205,13 @@ const SeasonStats = ({ setCurrentPage }) => {
                             </tr>
                           );
                         })}
-                      </tbody>
-                    </table>
+                    </tbody>
+                  </table>
                   </div>
                 </div>
               </div>
-            </div>
-
+              </div>
+              
             {/* Full Team Stats Table */}
             <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-200">
               <div className="card-body">
@@ -1266,33 +1266,33 @@ const SeasonStats = ({ setCurrentPage }) => {
                       })}
                     </tbody>
                   </table>
+                        </div>
+                      </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </div>
         </section>
-      )}
-
-      {/* Navigation buttons */}
+              )}
+            
+         {/* Navigation buttons */}
       <div className="flex justify-center mt-2 mb-8 space-x-4 pt-8">
-        <button
+            <button
           onClick={() => setCurrentPage('home')}
-          className="btn btn-outline btn-sm px-4 group flex items-center gap-2 hover:gap-3 transition-all"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
+              className="btn btn-outline btn-sm px-4 group flex items-center gap-2 hover:gap-3 transition-all"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
           Home
         </button>
         <button
           onClick={() => setCurrentPage('saved-games')}
           className="btn btn-outline btn-sm px-4 group flex items-center gap-2 hover:gap-3 transition-all"
         >
-          Saved Games
+              Saved Games
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
           </svg>
-        </button>
+            </button>
       </div>
     </div>
   );
