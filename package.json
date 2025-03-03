@@ -18,6 +18,8 @@
     "chartjs-plugin-annotation": "^3.1.0",
     "firebase": "^11.3.1",
     "framer-motion": "^12.4.7",
+    "jspdf": "^3.0.0",
+    "jspdf-autotable": "^5.0.2",
     "mongodb": "^6.13.1",
     "mongoose": "^8.10.1",
     "multer": "^1.4.5-lts.1",
