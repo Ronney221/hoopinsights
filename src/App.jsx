@@ -9,13 +9,13 @@ import VerifyEmail from './VerifyEmail';
 import Home from './Home';
 import Youtube from './Youtube';
 import SavedGames from './SavedGames';
-import SharedGame from './SharedGame';
 import SeasonStats from './SeasonStats';
 import NotificationTest from './NotificationTest';
 import { NotificationProvider } from './contexts/NotificationContext';
 import './App.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import HoopInsights from './HoopInsights';
 
 function App() {
   const [currentPage, setCurrentPage] = useState(() => {
@@ -109,6 +109,9 @@ function App() {
         break;
       case "notification-test":
         content = <NotificationTest setCurrentPage={setCurrentPage} />;
+        break;
+      case "hoopinsights":
+        content = <HoopInsights setCurrentPage={setCurrentPage} />;
         break;
       default:
         content = <Home setCurrentPage={setCurrentPage} />;

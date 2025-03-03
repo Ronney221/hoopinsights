@@ -3,42 +3,38 @@ import { useNotification } from './contexts/NotificationContext';
 import { useAuth } from './contexts/AuthContext';
 import { STATS_ENDPOINTS, STATS_V2_ENDPOINTS, createApiHeaders } from './config/apiConfig';
 
-const SharedGame = ({ shareId, setCurrentPage }) => {
+const HoopInsights = ({ setCurrentPage }) => {
   const { currentUser } = useAuth();
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [expandedSection, setExpandedSection] = useState('stats'); // 'stats' or 'timeline'
+  const [expandedSection, setExpandedSection] = useState('stats'); // 'stats' or 'timeline' or 'fullStats'
   const { success, error: notificationError, warning, info } = useNotification();
 
   useEffect(() => {
-    const fetchSharedGame = async () => {
+    const loadGameData = () => {
       try {
         setLoading(true);
-        const response = await fetch(`${STATS_V2_ENDPOINTS.BASE_URL}/shared/${shareId}`);
+        const gameData = JSON.parse(localStorage.getItem('hoopinsights-game'));
         
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch shared game');
+        if (!gameData) {
+          throw new Error('No game data found');
         }
         
-        const gameData = await response.json();
         setGame(gameData);
       } catch (err) {
-        console.error('Error fetching shared game:', err);
-        setError(err.message || 'Failed to load this shared game');
-        notificationError(err.message || 'Failed to load shared game');
+        console.error('Error loading game data:', err);
+        setError(err.message || 'Failed to load game data');
+        notificationError(err.message || 'Failed to load game data');
       } finally {
         setLoading(false);
       }
     };
 
-    if (shareId) {
-      fetchSharedGame();
-    }
-  }, [shareId]);
+    loadGameData();
+  }, []);
 
   const handleSaveToMyAccount = async () => {
     if (!currentUser) {
@@ -49,9 +45,31 @@ const SharedGame = ({ shareId, setCurrentPage }) => {
 
     try {
       setSaving(true);
-      const response = await fetch(`${STATS_V2_ENDPOINTS.BASE_URL}/saveSharedGame/${shareId}`, {
+      
+      // Prepare the game data with all required fields
+      const gameData = {
+        ...game,
+        userId: currentUser.uid,
+        savedAt: new Date().toISOString(),
+        internalId: game.videoId || game.internalId,
+        youtubeId: game.videoId || game.youtubeId,
+        videoId: game.videoId,
+        videoUrl: `https://www.youtube.com/watch?v=${game.videoId}`,
+        teams: game.teams || {
+          team1: { name: 'Team 1', players: [] },
+          team2: { name: 'Team 2', players: [] }
+        },
+        stats: game.stats || [],
+        title: game.title || 'Basketball Game'
+      };
+
+      // Log the request data for debugging
+      console.log('Saving game data:', gameData);
+
+      const response = await fetch(`${STATS_V2_ENDPOINTS.BASE_URL}/saveSharedGame/${game.shareId}`, {
         method: 'POST',
-        headers: await createApiHeaders(currentUser)
+        headers: await createApiHeaders(currentUser),
+        body: JSON.stringify({ game: gameData })
       });
 
       if (!response.ok) {
@@ -62,7 +80,7 @@ const SharedGame = ({ shareId, setCurrentPage }) => {
       const result = await response.json();
       success(result.message || 'Game saved to your account successfully!');
       
-      // Optional: Redirect to the saved games page
+      // Redirect to the saved games page
       setCurrentPage('saved-games');
     } catch (err) {
       console.error('Error saving shared game:', err);
@@ -195,10 +213,137 @@ const SharedGame = ({ shareId, setCurrentPage }) => {
 
   // Copy share link to clipboard
   const copyShareLink = () => {
-    const shareUrl = `${window.location.origin}/shared/${shareId}`;
+    const shareUrl = `${window.location.origin}/shared/${game.shareId}`;
     navigator.clipboard.writeText(shareUrl)
       .then(() => success('Share link copied to clipboard!'))
       .catch(() => notificationError('Failed to copy link'));
+  };
+
+  // Add this function after getPlayerStats
+  const getTeamStats = (teamId) => {
+    if (!game || !game.stats) return null;
+    
+    const teamStats = {
+      points: 0,
+      fgMade: 0,
+      fgAttempts: 0,
+      threePtMade: 0,
+      threePtAttempts: 0,
+      ftMade: 0,
+      ftAttempts: 0,
+      rebounds: 0,
+      assists: 0,
+      steals: 0,
+      blocks: 0,
+      turnovers: 0,
+      fouls: 0
+    };
+    
+    game.stats.forEach(stat => {
+      if (stat.team === teamId) {
+        switch(stat.type) {
+          case 'FG Made':
+            teamStats.points += 2;
+            teamStats.fgMade += 1;
+            teamStats.fgAttempts += 1;
+            break;
+          case 'FG Missed':
+            teamStats.fgAttempts += 1;
+            break;
+          case '3PT Made':
+            teamStats.points += 3;
+            teamStats.threePtMade += 1;
+            teamStats.threePtAttempts += 1;
+            teamStats.fgMade += 1;
+            teamStats.fgAttempts += 1;
+            break;
+          case '3PT Missed':
+            teamStats.threePtAttempts += 1;
+            teamStats.fgAttempts += 1;
+            break;
+          case 'FT Made':
+            teamStats.points += 1;
+            teamStats.ftMade += 1;
+            teamStats.ftAttempts += 1;
+            break;
+          case 'FT Missed':
+            teamStats.ftAttempts += 1;
+            break;
+          case 'Rebound':
+            teamStats.rebounds += 1;
+            break;
+          case 'Assist':
+            teamStats.assists += 1;
+            break;
+          case 'Steal':
+            teamStats.steals += 1;
+            break;
+          case 'Block':
+            teamStats.blocks += 1;
+            break;
+          case 'Turnover':
+            teamStats.turnovers += 1;
+            break;
+          case 'Foul':
+            teamStats.fouls += 1;
+            break;
+        }
+      }
+    });
+    
+    return teamStats;
+  };
+
+  const exportToCSV = () => {
+    // Prepare data for both teams
+    const team1Stats = getTeamStats('team1');
+    const team2Stats = getTeamStats('team2');
+    const team1Players = game.teams.team1.players.map(player => ({
+      name: player,
+      team: game.teams.team1.name,
+      ...getPlayerStats(player, 'team1')
+    }));
+    const team2Players = game.teams.team2.players.map(player => ({
+      name: player,
+      team: game.teams.team2.name,
+      ...getPlayerStats(player, 'team2')
+    }));
+
+    // Create CSV content
+    let csvContent = "Game: " + game.title + "\n";
+    csvContent += "Date: " + new Date().toLocaleDateString() + "\n\n";
+    
+    // Team Statistics
+    csvContent += "Team Statistics\n";
+    csvContent += "Team,Points,FG Made,FG Attempts,FG%,3PT Made,3PT Attempts,3PT%,FT Made,FT Attempts,FT%,Rebounds,Assists,Steals,Blocks,Turnovers,Fouls\n";
+    
+    [
+      { name: game.teams.team1.name, stats: team1Stats },
+      { name: game.teams.team2.name, stats: team2Stats }
+    ].forEach(team => {
+      const stats = team.stats;
+      csvContent += `${team.name},${stats.points},${stats.fgMade},${stats.fgAttempts},${(stats.fgMade/stats.fgAttempts*100||0).toFixed(1)}%,${stats.threePtMade},${stats.threePtAttempts},${(stats.threePtMade/stats.threePtAttempts*100||0).toFixed(1)}%,${stats.ftMade},${stats.ftAttempts},${(stats.ftMade/stats.ftAttempts*100||0).toFixed(1)}%,${stats.rebounds},${stats.assists},${stats.steals},${stats.blocks},${stats.turnovers},${stats.fouls}\n`;
+    });
+    
+    // Player Statistics
+    csvContent += "\nPlayer Statistics\n";
+    csvContent += "Player,Team,Points,FG Made,FG Attempts,FG%,3PT Made,3PT Attempts,3PT%,FT Made,FT Attempts,FT%,Rebounds,Assists,Steals,Blocks,Turnovers,Fouls\n";
+    
+    [...team1Players, ...team2Players].forEach(player => {
+      csvContent += `${player.name},${player.team},${player.points},${player.fgMade},${player.fgAttempts},${player.fgPercentage}%,${player.threePtMade},${player.threePtAttempts},${player.threePtPercentage}%,${player.ftMade},${player.ftAttempts},${player.ftPercentage}%,${player.rebounds},${player.assists},${player.steals},${player.blocks},${player.turnovers},${player.fouls}\n`;
+    });
+
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `${game.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_stats.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   if (loading) {
@@ -356,6 +501,12 @@ const SharedGame = ({ shareId, setCurrentPage }) => {
             onClick={() => setExpandedSection('stats')}
           >
             Player Stats
+          </button>
+          <button 
+            className={`tab ${expandedSection === 'fullStats' ? 'tab-active' : ''}`}
+            onClick={() => setExpandedSection('fullStats')}
+          >
+            Full Game Stats
           </button>
           <button 
             className={`tab ${expandedSection === 'timeline' ? 'tab-active' : ''}`}
@@ -564,6 +715,218 @@ const SharedGame = ({ shareId, setCurrentPage }) => {
           </section>
         )}
 
+        {/* Full Game Stats Section */}
+        {expandedSection === 'fullStats' && (
+          <section className="mb-10 animate-fadeIn">
+            <h2 className="text-2xl font-bold mb-4 text-center">Full Game Statistics</h2>
+            
+            {/* Team Comparison */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {['team1', 'team2'].map((teamId) => {
+                const stats = getTeamStats(teamId);
+                const teamName = game.teams[teamId].name;
+                const isTeam1 = teamId === 'team1';
+                
+                return (
+                  <div key={teamId} className="card bg-base-100 shadow-lg border border-base-200">
+                    <div className="card-body">
+                      <h3 className={`card-title ${isTeam1 ? 'text-primary' : 'text-secondary'}`}>
+                        {teamName}
+                      </h3>
+                      
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                        <div className="stat bg-base-200/50 p-3 rounded-box">
+                          <div className="stat-title text-xs">Points</div>
+                          <div className="stat-value text-2xl">{stats.points}</div>
+                        </div>
+                        <div className="stat bg-base-200/50 p-3 rounded-box">
+                          <div className="stat-title text-xs">FG%</div>
+                          <div className="stat-value text-2xl">
+                            {((stats.fgMade / stats.fgAttempts) * 100 || 0).toFixed(1)}%
+                          </div>
+                          <div className="stat-desc">{stats.fgMade}/{stats.fgAttempts}</div>
+                        </div>
+                        <div className="stat bg-base-200/50 p-3 rounded-box">
+                          <div className="stat-title text-xs">3P%</div>
+                          <div className="stat-value text-2xl">
+                            {((stats.threePtMade / stats.threePtAttempts) * 100 || 0).toFixed(1)}%
+                          </div>
+                          <div className="stat-desc">{stats.threePtMade}/{stats.threePtAttempts}</div>
+                        </div>
+                        <div className="stat bg-base-200/50 p-3 rounded-box">
+                          <div className="stat-title text-xs">FT%</div>
+                          <div className="stat-value text-2xl">
+                            {((stats.ftMade / stats.ftAttempts) * 100 || 0).toFixed(1)}%
+                          </div>
+                          <div className="stat-desc">{stats.ftMade}/{stats.ftAttempts}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="stat bg-base-200/50 p-3 rounded-box">
+                          <div className="stat-title text-xs">Rebounds</div>
+                          <div className="stat-value text-xl">{stats.rebounds}</div>
+                        </div>
+                        <div className="stat bg-base-200/50 p-3 rounded-box">
+                          <div className="stat-title text-xs">Assists</div>
+                          <div className="stat-value text-xl">{stats.assists}</div>
+                        </div>
+                        <div className="stat bg-base-200/50 p-3 rounded-box">
+                          <div className="stat-title text-xs">Steals</div>
+                          <div className="stat-value text-xl">{stats.steals}</div>
+                        </div>
+                        <div className="stat bg-base-200/50 p-3 rounded-box">
+                          <div className="stat-title text-xs">Blocks</div>
+                          <div className="stat-value text-xl">{stats.blocks}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Detailed Player Stats */}
+            <div className="card bg-base-100 shadow-lg border border-base-200 mb-8">
+              <div className="card-body">
+                <h3 className="card-title mb-4">Detailed Player Statistics</h3>
+                <div className="overflow-x-auto">
+                  <table className="table table-zebra w-full">
+                    <thead>
+                      <tr>
+                        <th>Player</th>
+                        <th>Team</th>
+                        <th className="text-center">PTS</th>
+                        <th className="text-center">FG</th>
+                        <th className="text-center">3PT</th>
+                        <th className="text-center">FT</th>
+                        <th className="text-center">REB</th>
+                        <th className="text-center">AST</th>
+                        <th className="text-center">STL</th>
+                        <th className="text-center">BLK</th>
+                        <th className="text-center">TO</th>
+                        <th className="text-center">+/-</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* Team 1 Players */}
+                      {game.teams.team1.players.map(player => {
+                        const stats = getPlayerStats(player, 'team1');
+                        const efficiency = stats.points + stats.rebounds + stats.assists + 
+                                        stats.steals + stats.blocks - 
+                                        (stats.fgAttempts - stats.fgMade) - 
+                                        (stats.ftAttempts - stats.ftMade) - 
+                                        stats.turnovers;
+                        return (
+                          <tr key={`team1-${player}`}>
+                            <td className="font-medium">{player}</td>
+                            <td className="text-primary">{game.teams.team1.name}</td>
+                            <td className="text-center font-medium">{stats.points}</td>
+                            <td className="text-center">
+                              {stats.fgMade}/{stats.fgAttempts}
+                              <br />
+                              <span className="text-xs opacity-60">
+                                {stats.fgPercentage}%
+                              </span>
+                            </td>
+                            <td className="text-center">
+                              {stats.threePtMade}/{stats.threePtAttempts}
+                              <br />
+                              <span className="text-xs opacity-60">
+                                {stats.threePtPercentage}%
+                              </span>
+                            </td>
+                            <td className="text-center">
+                              {stats.ftMade}/{stats.ftAttempts}
+                              <br />
+                              <span className="text-xs opacity-60">
+                                {stats.ftPercentage}%
+                              </span>
+                            </td>
+                            <td className="text-center">{stats.rebounds}</td>
+                            <td className="text-center">{stats.assists}</td>
+                            <td className="text-center">{stats.steals}</td>
+                            <td className="text-center">{stats.blocks}</td>
+                            <td className="text-center">{stats.turnovers}</td>
+                            <td className={`text-center font-medium ${
+                              efficiency > 0 ? 'text-success' : 
+                              efficiency < 0 ? 'text-error' : ''
+                            }`}>
+                              {efficiency > 0 ? '+' : ''}{efficiency}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      
+                      {/* Team 2 Players */}
+                      {game.teams.team2.players.map(player => {
+                        const stats = getPlayerStats(player, 'team2');
+                        const efficiency = stats.points + stats.rebounds + stats.assists + 
+                                        stats.steals + stats.blocks - 
+                                        (stats.fgAttempts - stats.fgMade) - 
+                                        (stats.ftAttempts - stats.ftMade) - 
+                                        stats.turnovers;
+                        return (
+                          <tr key={`team2-${player}`}>
+                            <td className="font-medium">{player}</td>
+                            <td className="text-secondary">{game.teams.team2.name}</td>
+                            <td className="text-center font-medium">{stats.points}</td>
+                            <td className="text-center">
+                              {stats.fgMade}/{stats.fgAttempts}
+                              <br />
+                              <span className="text-xs opacity-60">
+                                {stats.fgPercentage}%
+                              </span>
+                            </td>
+                            <td className="text-center">
+                              {stats.threePtMade}/{stats.threePtAttempts}
+                              <br />
+                              <span className="text-xs opacity-60">
+                                {stats.threePtPercentage}%
+                              </span>
+                            </td>
+                            <td className="text-center">
+                              {stats.ftMade}/{stats.ftAttempts}
+                              <br />
+                              <span className="text-xs opacity-60">
+                                {stats.ftPercentage}%
+                              </span>
+                            </td>
+                            <td className="text-center">{stats.rebounds}</td>
+                            <td className="text-center">{stats.assists}</td>
+                            <td className="text-center">{stats.steals}</td>
+                            <td className="text-center">{stats.blocks}</td>
+                            <td className="text-center">{stats.turnovers}</td>
+                            <td className={`text-center font-medium ${
+                              efficiency > 0 ? 'text-success' : 
+                              efficiency < 0 ? 'text-error' : ''
+                            }`}>
+                              {efficiency > 0 ? '+' : ''}{efficiency}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Export Button */}
+            <div className="text-center">
+              <button
+                onClick={exportToCSV}
+                className="btn btn-primary gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Export as CSV
+              </button>
+            </div>
+          </section>
+        )}
+
         {/* Game Timeline */}
         {expandedSection === 'timeline' && (
           <section className="mb-10">
@@ -635,4 +998,4 @@ const SharedGame = ({ shareId, setCurrentPage }) => {
   );
 };
 
-export default SharedGame; 
+export default HoopInsights; 
