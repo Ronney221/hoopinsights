@@ -1,7 +1,7 @@
 {
-  "name": "server",
+  "name": "shotify-server",
   "version": "1.0.0",
-  "description": "Backend API for HoopInsights",
+  "description": "Backend API for Shotify - Basketball Stats Tracker",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

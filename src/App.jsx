@@ -15,7 +15,7 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import './App.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import HoopInsights from './HoopInsights';
+import Shotify from './Shotify';
 
 function App() {
   const [currentPage, setCurrentPage] = useState(() => {
@@ -110,8 +110,8 @@ function App() {
       case "notification-test":
         content = <NotificationTest setCurrentPage={setCurrentPage} />;
         break;
-      case "hoopinsights":
-        content = <HoopInsights setCurrentPage={setCurrentPage} />;
+      case "shotify":
+        content = <Shotify setCurrentPage={setCurrentPage} />;
         break;
       default:
         content = <Home setCurrentPage={setCurrentPage} />;

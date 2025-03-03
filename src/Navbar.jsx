@@ -128,7 +128,7 @@ const Navbar = ({ setCurrentPage }) => {
           onClick={() => handlePageChange('home')}
         >
           <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            HoopInsights
+            SHOTIFY 
           </span>
         </button>
       </div>

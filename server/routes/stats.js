@@ -412,8 +412,8 @@ router.post('/shareGame/:videoId', authenticateUser, async (req, res) => {
     
     console.log(`User ${req.user.uid} shared game: ${video.title} with ID: ${shareId}`);
     
-    // Get the public URL from the request or use a default
-    const publicUrl = process.env.PUBLIC_URL || req.headers.origin || 'https://hoopinsights.vercel.app';
+    // Update the public URL
+    const publicUrl = process.env.PUBLIC_URL || req.headers.origin || 'https://shotify.org';
     const shareUrl = `${publicUrl}/shared/${shareId}`;
     
     res.json({

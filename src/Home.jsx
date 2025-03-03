@@ -56,8 +56,8 @@ const Home = ({ setCurrentPage }) => {
               <div className="relative mb-6 inline-block">
                 <span className="absolute -inset-1 rounded-lg bg-gradient-to-r from-primary to-secondary blur-lg opacity-25"></span>
                 <h1 className="relative text-5xl md:text-6xl lg:text-7xl font-black mb-2 tracking-tight">
-                  <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Hoop</span>
-                  <span className="text-base-content">Insights</span>
+                  <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">SHOT</span>
+                  <span className="text-base-content">IFY</span>
               </h1>
               </div>
               <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 tracking-tight leading-tight">
@@ -628,7 +628,7 @@ const Home = ({ setCurrentPage }) => {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 text-sm">
-                            <input type="text" value="hoopinsights.com/g/2024315" className="input input-sm input-bordered flex-1" readOnly />
+                            <input type="text" value="shotify.com/g/2024315" className="input input-sm input-bordered flex-1" readOnly />
                             <button className="btn btn-primary btn-sm">Copy</button>
                           </div>
                         </div>

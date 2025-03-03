@@ -15,7 +15,7 @@ const Footer = () => {
               <div className="relative inline-block">
                 <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-lg blur opacity-30 group-hover:opacity-100 transition duration-1000 -z-10"></div>
                 <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  HoopInsights
+                  Shotify
                 </h3>
               </div>
               <p className="text-sm opacity-70 max-w-sm leading-relaxed">
@@ -174,7 +174,7 @@ const Footer = () => {
           {/* Copyright */}
           <div className="mt-10 pt-8 border-t border-base-300/30 text-center">
             <p className="text-sm opacity-60">
-              © {new Date().getFullYear()} HoopInsights. All rights reserved.
+              © {new Date().getFullYear()} Shotify. All rights reserved.
             </p>
           </div>
         </div>

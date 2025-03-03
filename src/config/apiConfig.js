@@ -8,6 +8,15 @@
 // Determine if we're running in production
 const isProduction = import.meta.env.PROD || process.env.NODE_ENV === 'production';
 
+// API Base URLs
+const BASE_URL = process.env.NODE_ENV === 'development'
+  ? 'http://localhost:3001'
+  : 'https://shotify.org';
+
+const API_BASE_URL = process.env.NODE_ENV === 'development'
+  ? 'http://localhost:3001/api'
+  : 'https://shotify.org/api';
+
 // Set base URLs for app and API
 export const APP_URL = isProduction 
   ? 'https://hoopinsights.vercel.app' 

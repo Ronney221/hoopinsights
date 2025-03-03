@@ -3,7 +3,7 @@ import { useNotification } from './contexts/NotificationContext';
 import { useAuth } from './contexts/AuthContext';
 import { STATS_ENDPOINTS, STATS_V2_ENDPOINTS, createApiHeaders } from './config/apiConfig';
 
-const HoopInsights = ({ setCurrentPage }) => {
+const Shotify = ({ setCurrentPage }) => {
   const { currentUser } = useAuth();
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1249,12 +1249,12 @@ const HoopInsights = ({ setCurrentPage }) => {
               <div className="card bg-base-100 shadow-lg border border-base-200 h-full">
                 <div className="card-body">
                   <div className="h-16 flex items-center">
-                    <h3 className="card-title text-primary">{game.teams.team1.name}</h3>
+                  <h3 className="card-title text-primary">{game.teams.team1.name}</h3>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {game.teams.team1.players.map(player => {
-                      const stats = getPlayerStats(player, 'team1');
-                      if (!stats) return null;
+                        {game.teams.team1.players.map(player => {
+                          const stats = getPlayerStats(player, 'team1');
+                          if (!stats) return null;
                       
                       const statsList = [
                         { name: 'PTS', value: stats.points },
@@ -1264,12 +1264,12 @@ const HoopInsights = ({ setCurrentPage }) => {
                         { name: 'BLK', value: stats.blocks }
                       ].sort((a, b) => b.value - a.value).slice(0, 3);
                           
-                      return (
+                          return (
                         <div 
                           key={player}
                           className={`bg-base-200/50 p-4 rounded-xl cursor-pointer hover:bg-base-200 transition-colors ${selectedPlayer === player ? 'ring-2 ring-primary' : ''}`}
-                          onClick={() => setSelectedPlayer(selectedPlayer === player ? null : player)}
-                        >
+                                  onClick={() => setSelectedPlayer(selectedPlayer === player ? null : player)}
+                                >
                           <div className="font-medium mb-2 h-6 flex items-center">{player}</div>
                           <div className="grid grid-cols-3 gap-2">
                             {statsList.map((stat, index) => (
@@ -1280,8 +1280,8 @@ const HoopInsights = ({ setCurrentPage }) => {
                             ))}
                           </div>
                         </div>
-                      );
-                    })}
+                          );
+                        })}
                   </div>
                 </div>
               </div>
@@ -1290,12 +1290,12 @@ const HoopInsights = ({ setCurrentPage }) => {
               <div className="card bg-base-100 shadow-lg border border-base-200 h-full">
                 <div className="card-body">
                   <div className="h-16 flex items-center">
-                    <h3 className="card-title text-secondary">{game.teams.team2.name}</h3>
+                  <h3 className="card-title text-secondary">{game.teams.team2.name}</h3>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {game.teams.team2.players.map(player => {
-                      const stats = getPlayerStats(player, 'team2');
-                      if (!stats) return null;
+                        {game.teams.team2.players.map(player => {
+                          const stats = getPlayerStats(player, 'team2');
+                          if (!stats) return null;
                       
                       const statsList = [
                         { name: 'PTS', value: stats.points },
@@ -1305,12 +1305,12 @@ const HoopInsights = ({ setCurrentPage }) => {
                         { name: 'BLK', value: stats.blocks }
                       ].sort((a, b) => b.value - a.value).slice(0, 3);
                           
-                      return (
+                          return (
                         <div 
                           key={player}
                           className={`bg-base-200/50 p-4 rounded-xl cursor-pointer hover:bg-base-200 transition-colors ${selectedPlayer === player ? 'ring-2 ring-secondary' : ''}`}
-                          onClick={() => setSelectedPlayer(selectedPlayer === player ? null : player)}
-                        >
+                                  onClick={() => setSelectedPlayer(selectedPlayer === player ? null : player)}
+                                >
                           <div className="font-medium mb-2 h-6 flex items-center">{player}</div>
                           <div className="grid grid-cols-3 gap-2">
                             {statsList.map((stat, index) => (
@@ -1321,8 +1321,8 @@ const HoopInsights = ({ setCurrentPage }) => {
                             ))}
                           </div>
                         </div>
-                      );
-                    })}
+                          );
+                        })}
                   </div>
                 </div>
               </div>
@@ -1683,11 +1683,11 @@ const HoopInsights = ({ setCurrentPage }) => {
                 {/* Team 1 */}
                 <div className="mb-8">
                   <h4 className="text-lg font-medium text-primary mb-4">{game.teams.team1.name}</h4>
-                  <div className="overflow-x-auto">
-                    <table className="table table-zebra w-full">
-                      <thead>
-                        <tr>
-                          <th>Player</th>
+                <div className="overflow-x-auto">
+                  <table className="table table-zebra w-full">
+                    <thead>
+                      <tr>
+                        <th>Player</th>
                           <th onClick={() => {
                             setSortConfig({
                               key: 'points',
@@ -1760,9 +1760,9 @@ const HoopInsights = ({ setCurrentPage }) => {
                           }} className="text-center cursor-pointer hover:bg-base-200">
                             TO {sortConfig.key === 'turnovers' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
                           </th>
-                        </tr>
-                      </thead>
-                      <tbody>
+                      </tr>
+                    </thead>
+                    <tbody>
                         {sortData(game.teams.team1.players.map(player => ({
                           ...getPlayerStats(player, 'team1'),
                           name: player
@@ -1921,11 +1921,11 @@ const HoopInsights = ({ setCurrentPage }) => {
                             <td className="text-center">{player.turnovers}</td>
                           </tr>
                         ))}
-                      </tbody>
-                    </table>
-                  </div>
+                    </tbody>
+                  </table>
                 </div>
               </div>
+            </div>
             </div>
 
             {/* Replace the old export button with the new ExportSection */}
@@ -1984,7 +1984,7 @@ const HoopInsights = ({ setCurrentPage }) => {
         {!currentUser && (
         <div className="text-center mt-12">
           <h3 className="text-xl font-bold mb-3">Want to track your own games?</h3>
-          <p className="opacity-70 mb-6">Sign up for free and start tracking basketball stats with HoopInsights</p>
+          <p className="opacity-70 mb-6">Sign up for free and start tracking basketball stats with Shotify</p>
           <div className="flex flex-wrap justify-center gap-4">
             <button 
               onClick={() => setCurrentPage('register')}
@@ -2002,22 +2002,26 @@ const HoopInsights = ({ setCurrentPage }) => {
         </div>
         )}
 
-          {/* Navigation buttons */}
-          <div className="flex justify-center mt-2 mb-8 space-x-4 pt-8">
-            <button
-              onClick={() => setCurrentPage('saved-games')}
-              className="btn btn-outline btn-sm px-4 group flex items-center gap-2 hover:gap-3 transition-all"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Saved Games
-            </button>
-         
+           {/* Navigation buttons */}
+         <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
+            <div className="bg-base-100/80 backdrop-blur-lg rounded-2xl shadow-lg border border-base-content/5 p-2 flex gap-2">
+             
+
+              <button
+                onClick={() => setCurrentPage('saved-games')}
+                className="btn btn-ghost hover:bg-secondary/10 px-6 gap-2 transition-all duration-300 group relative overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-secondary/20 to-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-secondary transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <span className="font-medium">Saved Games</span>
+              </button>
+            </div>
           </div>
       </div>
     </div>
   );
 };
 
-export default HoopInsights; 
+export default Shotify; 
