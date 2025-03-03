@@ -513,14 +513,15 @@ const HoopInsights = ({ setCurrentPage }) => {
     if (!game || !game.teams || !game.teams[teamId]) return null;
     
     const leaders = {
-      points: { value: 0, player: '' },
-      rebounds: { value: 0, player: '' },
-      assists: { value: 0, player: '' },
-      steals: { value: 0, player: '' },
-      blocks: { value: 0, player: '' },
-      fgPercentage: { value: 0, player: '' },
-      threePtPercentage: { value: 0, player: '' },
-      ftPercentage: { value: 0, player: '' }
+      points: { value: 0, players: [] },
+      rebounds: { value: 0, players: [] },
+      assists: { value: 0, players: [] },
+      steals: { value: 0, players: [] },
+      blocks: { value: 0, players: [] },
+      fgPercentage: { value: 0, players: [] },
+      threePtMade: { value: 0, players: [] },
+      turnovers: { value: 0, players: [] },
+      ftPercentage: { value: 0, players: [] }
     };
     
     game.teams[teamId].players.forEach(player => {
@@ -529,35 +530,65 @@ const HoopInsights = ({ setCurrentPage }) => {
       
       // Update points leader
       if (stats.points > leaders.points.value) {
-        leaders.points = { value: stats.points, player: player };
+        leaders.points = { value: stats.points, players: [player] };
+      } else if (stats.points === leaders.points.value) {
+        leaders.points.players.push(player);
       }
+      
       // Update rebounds leader
       if (stats.rebounds > leaders.rebounds.value) {
-        leaders.rebounds = { value: stats.rebounds, player: player };
+        leaders.rebounds = { value: stats.rebounds, players: [player] };
+      } else if (stats.rebounds === leaders.rebounds.value) {
+        leaders.rebounds.players.push(player);
       }
+      
       // Update assists leader
       if (stats.assists > leaders.assists.value) {
-        leaders.assists = { value: stats.assists, player: player };
+        leaders.assists = { value: stats.assists, players: [player] };
+      } else if (stats.assists === leaders.assists.value) {
+        leaders.assists.players.push(player);
       }
+      
       // Update steals leader
       if (stats.steals > leaders.steals.value) {
-        leaders.steals = { value: stats.steals, player: player };
+        leaders.steals = { value: stats.steals, players: [player] };
+      } else if (stats.steals === leaders.steals.value) {
+        leaders.steals.players.push(player);
       }
+      
       // Update blocks leader
       if (stats.blocks > leaders.blocks.value) {
-        leaders.blocks = { value: stats.blocks, player: player };
+        leaders.blocks = { value: stats.blocks, players: [player] };
+      } else if (stats.blocks === leaders.blocks.value) {
+        leaders.blocks.players.push(player);
       }
+      
       // Update FG% leader (minimum 5 attempts)
       if (stats.fgAttempts >= 5 && stats.fgPercentage > leaders.fgPercentage.value) {
-        leaders.fgPercentage = { value: stats.fgPercentage, player: player };
+        leaders.fgPercentage = { value: stats.fgPercentage, players: [player] };
+      } else if (stats.fgAttempts >= 5 && stats.fgPercentage === leaders.fgPercentage.value) {
+        leaders.fgPercentage.players.push(player);
       }
-      // Update 3PT% leader (minimum 3 attempts)
-      if (stats.threePtAttempts >= 3 && stats.threePtPercentage > leaders.threePtPercentage.value) {
-        leaders.threePtPercentage = { value: stats.threePtPercentage, player: player };
+      
+      // Update 3PT made leader
+      if (stats.threePtMade > leaders.threePtMade.value) {
+        leaders.threePtMade = { value: stats.threePtMade, players: [player] };
+      } else if (stats.threePtMade === leaders.threePtMade.value) {
+        leaders.threePtMade.players.push(player);
       }
+      
+      // Update turnovers leader
+      if (stats.turnovers > leaders.turnovers.value) {
+        leaders.turnovers = { value: stats.turnovers, players: [player] };
+      } else if (stats.turnovers === leaders.turnovers.value) {
+        leaders.turnovers.players.push(player);
+      }
+      
       // Update FT% leader (minimum 2 attempts)
       if (stats.ftAttempts >= 2 && stats.ftPercentage > leaders.ftPercentage.value) {
-        leaders.ftPercentage = { value: stats.ftPercentage, player: player };
+        leaders.ftPercentage = { value: stats.ftPercentage, players: [player] };
+      } else if (stats.ftAttempts >= 2 && stats.ftPercentage === leaders.ftPercentage.value) {
+        leaders.ftPercentage.players.push(player);
       }
     });
     
@@ -805,14 +836,236 @@ const HoopInsights = ({ setCurrentPage }) => {
     if (!key) return data;
     
     return [...data].sort((a, b) => {
-      if (a[key] < b[key]) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
+      let aValue, bValue;
+      
+      switch (key) {
+        case 'points':
+          aValue = a.points;
+          bValue = b.points;
+          break;
+        case 'fgPercentage':
+          aValue = a.fgPercentage;
+          bValue = b.fgPercentage;
+          break;
+        case 'threePtPercentage':
+          aValue = a.threePtPercentage;
+          bValue = b.threePtPercentage;
+          break;
+        case 'ftPercentage':
+          aValue = a.ftPercentage;
+          bValue = b.ftPercentage;
+          break;
+        case 'rebounds':
+          aValue = a.rebounds;
+          bValue = b.rebounds;
+          break;
+        case 'assists':
+          aValue = a.assists;
+          bValue = b.assists;
+          break;
+        case 'steals':
+          aValue = a.steals;
+          bValue = b.steals;
+          break;
+        case 'blocks':
+          aValue = a.blocks;
+          bValue = b.blocks;
+          break;
+        case 'turnovers':
+          aValue = a.turnovers;
+          bValue = b.turnovers;
+          break;
+        default:
+          return 0;
       }
-      if (a[key] > b[key]) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
+
+      if (sortConfig.direction === 'asc') {
+        return aValue - bValue;
       }
-      return 0;
+      return bValue - aValue;
     });
+  };
+
+  // Add this function after getTeamLeaders
+  const calculateEfficiency = (stats) => {
+    const {
+      fgMade,
+      fgAttempts,
+      threePtMade,
+      threePtAttempts,
+      ftMade,
+      ftAttempts,
+      rebounds,
+      assists,
+      steals,
+      blocks,
+      turnovers,
+      fouls
+    } = stats;
+
+    // Calculate shooting efficiency
+    const fgScore = fgMade - (fgAttempts - fgMade);
+    const threePtScore = (threePtMade * 1.5) - (threePtAttempts - threePtMade);
+    const ftScore = ftMade - (ftAttempts - ftMade);
+
+    // Calculate other contributions
+    const reboundScore = rebounds * 0.5;
+    const assistScore = assists * 1.5;
+    const stealScore = steals * 2;
+    const blockScore = blocks * 2;
+
+    // Calculate negative contributions
+    const turnoverScore = turnovers * -2;
+    const foulScore = fouls * -0.5;
+
+    // Combine all scores
+    const totalScore = fgScore + threePtScore + ftScore + reboundScore + 
+                      assistScore + stealScore + blockScore + turnoverScore + foulScore;
+
+    return Math.round(totalScore);
+  };
+
+  const GameTimeline = () => {
+    const [selectedQuarter, setSelectedQuarter] = useState(1);
+    const [selectedPlayer, setSelectedPlayer] = useState(null);
+
+    // Calculate scoring timeline data
+    const timelineData = game.quarters.map((quarter, index) => {
+      const team1Score = quarter.team1Score;
+      const team2Score = quarter.team2Score;
+      const leadChange = team1Score !== team2Score && 
+                        (index === 0 || team1Score !== game.quarters[index - 1].team1Score || 
+                         team2Score !== game.quarters[index - 1].team2Score);
+      
+      return {
+        quarter: index + 1,
+        team1Score,
+        team2Score,
+        leadChange,
+        team1Momentum: team1Score - (index > 0 ? game.quarters[index - 1].team1Score : 0),
+        team2Momentum: team2Score - (index > 0 ? game.quarters[index - 1].team2Score : 0)
+      };
+    });
+
+    // Calculate player performance trends
+    const playerTrends = game.teams.team1.players.map(player => {
+      const stats = getPlayerStats(player, 'team1');
+      const quarters = game.quarters.map((quarter, index) => {
+        const quarterStats = quarter.team1Stats[player] || {};
+        return {
+          quarter: index + 1,
+          points: quarterStats.points || 0,
+          fgPercentage: quarterStats.fgPercentage || 0,
+          threePtPercentage: quarterStats.threePtPercentage || 0,
+          efficiency: calculateEfficiency(quarterStats)
+        };
+      });
+
+      return {
+        name: player,
+        quarters,
+        hotStreak: quarters.filter(q => q.points >= 8).length,
+        coldStreak: quarters.filter(q => q.points === 0).length
+      };
+    });
+
+    return (
+      <div className="space-y-6">
+        {/* Scoring Timeline */}
+        <div className="bg-base-200 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4">Scoring Timeline</h3>
+          <div className="relative h-64">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-full h-1 bg-base-300"></div>
+            </div>
+            {timelineData.map((data, index) => (
+              <div key={index} className="absolute top-0 left-0 w-full">
+                <div className="flex justify-between px-4">
+                  <div className={`text-sm ${data.team1Momentum > 0 ? 'text-success' : ''}`}>
+                    {data.team1Score}
+                  </div>
+                  <div className={`text-sm ${data.team2Momentum > 0 ? 'text-success' : ''}`}>
+                    {data.team2Score}
+                  </div>
+                </div>
+                {data.leadChange && (
+                  <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <div className="bg-primary text-primary-content text-xs px-2 py-1 rounded-full">
+                      Lead Change
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Player Performance Trends */}
+        <div className="bg-base-200 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4">Player Performance Trends</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {playerTrends.map(player => (
+              <div key={player.name} className="bg-base-100 p-4 rounded-lg">
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-medium">{player.name}</h4>
+                  <div className="flex gap-2">
+                    {player.hotStreak > 0 && (
+                      <div className="badge badge-success">Hot Streak</div>
+                    )}
+                    {player.coldStreak > 0 && (
+                      <div className="badge badge-error">Cold Streak</div>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {player.quarters.map((quarter, index) => (
+                    <div key={index} className="flex justify-between items-center">
+                      <span className="text-sm opacity-60">Q{quarter.quarter}</span>
+                      <div className="flex gap-4">
+                        <span className="text-sm">{quarter.points} pts</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Critical Moments */}
+        <div className="bg-base-200 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4">Critical Moments</h3>
+          <div className="space-y-4">
+            {game.quarters.map((quarter, index) => (
+              <div key={index} className="bg-base-100 p-4 rounded-lg">
+                <h4 className="font-medium mb-2">Quarter {index + 1}</h4>
+                <div className="space-y-2">
+                  {quarter.team1Stats && Object.entries(quarter.team1Stats).map(([player, stats]) => {
+                    const efficiency = calculateEfficiency(stats);
+                    if (efficiency >= 5 || stats.points >= 8) {
+                      return (
+                        <div key={player} className="flex justify-between items-center">
+                          <span className="text-sm">{player}</span>
+                          <div className="flex gap-2">
+                            {stats.points >= 8 && (
+                              <div className="badge badge-success">Clutch Shot</div>
+                            )}
+                            {efficiency >= 5 && (
+                              <div className="badge badge-primary">Key Play</div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -993,15 +1246,16 @@ const HoopInsights = ({ setCurrentPage }) => {
             {/* Team cards */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               {/* Team 1 Card */}
-              <div className="card bg-base-100 shadow-lg border border-base-200">
+              <div className="card bg-base-100 shadow-lg border border-base-200 h-full">
                 <div className="card-body">
-                  <h3 className="card-title text-primary">{game.teams.team1.name}</h3>
+                  <div className="h-16 flex items-center">
+                    <h3 className="card-title text-primary">{game.teams.team1.name}</h3>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {game.teams.team1.players.map(player => {
                       const stats = getPlayerStats(player, 'team1');
                       if (!stats) return null;
                       
-                      // Get top 3 stats
                       const statsList = [
                         { name: 'PTS', value: stats.points },
                         { name: 'REB', value: stats.rebounds },
@@ -1009,14 +1263,14 @@ const HoopInsights = ({ setCurrentPage }) => {
                         { name: 'STL', value: stats.steals },
                         { name: 'BLK', value: stats.blocks }
                       ].sort((a, b) => b.value - a.value).slice(0, 3);
-                      
+                          
                       return (
                         <div 
                           key={player}
                           className={`bg-base-200/50 p-4 rounded-xl cursor-pointer hover:bg-base-200 transition-colors ${selectedPlayer === player ? 'ring-2 ring-primary' : ''}`}
                           onClick={() => setSelectedPlayer(selectedPlayer === player ? null : player)}
                         >
-                          <div className="font-medium mb-2">{player}</div>
+                          <div className="font-medium mb-2 h-6 flex items-center">{player}</div>
                           <div className="grid grid-cols-3 gap-2">
                             {statsList.map((stat, index) => (
                               <div key={index} className="text-center">
@@ -1033,15 +1287,16 @@ const HoopInsights = ({ setCurrentPage }) => {
               </div>
               
               {/* Team 2 Card */}
-              <div className="card bg-base-100 shadow-lg border border-base-200">
+              <div className="card bg-base-100 shadow-lg border border-base-200 h-full">
                 <div className="card-body">
-                  <h3 className="card-title text-secondary">{game.teams.team2.name}</h3>
+                  <div className="h-16 flex items-center">
+                    <h3 className="card-title text-secondary">{game.teams.team2.name}</h3>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {game.teams.team2.players.map(player => {
                       const stats = getPlayerStats(player, 'team2');
                       if (!stats) return null;
                       
-                      // Get top 3 stats
                       const statsList = [
                         { name: 'PTS', value: stats.points },
                         { name: 'REB', value: stats.rebounds },
@@ -1049,14 +1304,14 @@ const HoopInsights = ({ setCurrentPage }) => {
                         { name: 'STL', value: stats.steals },
                         { name: 'BLK', value: stats.blocks }
                       ].sort((a, b) => b.value - a.value).slice(0, 3);
-                      
+                          
                       return (
                         <div 
                           key={player}
                           className={`bg-base-200/50 p-4 rounded-xl cursor-pointer hover:bg-base-200 transition-colors ${selectedPlayer === player ? 'ring-2 ring-secondary' : ''}`}
                           onClick={() => setSelectedPlayer(selectedPlayer === player ? null : player)}
                         >
-                          <div className="font-medium mb-2">{player}</div>
+                          <div className="font-medium mb-2 h-6 flex items-center">{player}</div>
                           <div className="grid grid-cols-3 gap-2">
                             {statsList.map((stat, index) => (
                               <div key={index} className="text-center">
@@ -1111,18 +1366,18 @@ const HoopInsights = ({ setCurrentPage }) => {
                               <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm font-medium">Points</span>
                                 <span className="text-primary font-bold">{stats.points}</span>
-                              </div>
+                          </div>
                               <div className="h-2 bg-base-300 rounded-full overflow-hidden">
                                 <div 
                                   className="h-full bg-primary rounded-full transition-all duration-1000"
                                   style={{ width: `${(stats.points / (teamLeaders.points.value || 1)) * 100}%` }}
                                 ></div>
-                              </div>
+                          </div>
                               <div className="flex justify-between text-xs opacity-60 mt-1">
                                 <span>Current: {stats.points}</span>
-                                <span>Team High: {teamLeaders.points.player} ({teamLeaders.points.value})</span>
-                              </div>
-                            </div>
+                                <span>Team High: {teamLeaders.points.players.map(p => p).join(', ')} ({teamLeaders.points.value})</span>
+                          </div>
+                          </div>
                           )}
 
                           {/* Field Goal Percentage */}
@@ -1139,10 +1394,10 @@ const HoopInsights = ({ setCurrentPage }) => {
                                 ></div>
                               </div>
                               <div className="flex justify-between text-xs opacity-60 mt-1">
-                                <span>{stats.fgMade}/{stats.fgAttempts}</span>
-                                <span>Team High: {teamLeaders.fgPercentage.player} ({teamLeaders.fgPercentage.value}%)</span>
-                              </div>
+                              <span>{stats.fgMade}/{stats.fgAttempts}</span>
+                                <span>Team High: {teamLeaders.fgPercentage.players.map(p => p).join(', ')} ({teamLeaders.fgPercentage.value}%)</span>
                             </div>
+                          </div>
                           )}
 
                           {/* Free Throw Percentage */}
@@ -1151,18 +1406,18 @@ const HoopInsights = ({ setCurrentPage }) => {
                               <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm font-medium">Free Throw %</span>
                                 <span className="text-accent font-bold">{stats.ftPercentage}%</span>
-                              </div>
+                            </div>
                               <div className="h-2 bg-base-300 rounded-full overflow-hidden">
                                 <div 
                                   className="h-full bg-accent rounded-full transition-all duration-1000"
                                   style={{ width: `${(stats.ftPercentage / (teamLeaders.ftPercentage.value || 1)) * 100}%` }}
                                 ></div>
-                              </div>
+                          </div>
                               <div className="flex justify-between text-xs opacity-60 mt-1">
-                                <span>{stats.ftMade}/{stats.ftAttempts}</span>
-                                <span>Team High: {teamLeaders.ftPercentage.player} ({teamLeaders.ftPercentage.value}%)</span>
-                              </div>
+                              <span>{stats.ftMade}/{stats.ftAttempts}</span>
+                                <span>Team High: {teamLeaders.ftPercentage.players.map(p => p).join(', ')} ({teamLeaders.ftPercentage.value}%)</span>
                             </div>
+                          </div>
                           )}
 
                           {/* Three Pointers Made */}
@@ -1171,7 +1426,7 @@ const HoopInsights = ({ setCurrentPage }) => {
                               <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm font-medium">Three Pointers Made</span>
                                 <span className="text-info font-bold">{stats.threePtMade}</span>
-                              </div>
+                        </div>
                               <div className="h-2 bg-base-300 rounded-full overflow-hidden">
                                 <div 
                                   className="h-full bg-info rounded-full transition-all duration-1000"
@@ -1180,7 +1435,7 @@ const HoopInsights = ({ setCurrentPage }) => {
                               </div>
                               <div className="flex justify-between text-xs opacity-60 mt-1">
                                 <span>{stats.threePtMade}/{stats.threePtAttempts} ({stats.threePtPercentage}%)</span>
-                                <span>Team High: {teamLeaders.threePtMade?.player} ({teamLeaders.threePtMade?.value || 0})</span>
+                                <span>Team High: {teamLeaders.threePtMade?.players.map(p => p).join(', ')} ({teamLeaders.threePtMade?.value || 0})</span>
                               </div>
                             </div>
                           )}
@@ -1191,17 +1446,17 @@ const HoopInsights = ({ setCurrentPage }) => {
                               <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm font-medium">Rebounds</span>
                                 <span className="text-success font-bold">{stats.rebounds}</span>
-                              </div>
+                          </div>
                               <div className="h-2 bg-base-300 rounded-full overflow-hidden">
                                 <div 
                                   className="h-full bg-success rounded-full transition-all duration-1000"
                                   style={{ width: `${(stats.rebounds / (teamLeaders.rebounds.value || 1)) * 100}%` }}
                                 ></div>
-                              </div>
+                          </div>
                               <div className="flex justify-between text-xs opacity-60 mt-1">
                                 <span>Current: {stats.rebounds}</span>
-                                <span>Team High: {teamLeaders.rebounds.player} ({teamLeaders.rebounds.value})</span>
-                              </div>
+                                <span>Team High: {teamLeaders.rebounds.players.map(p => p).join(', ')} ({teamLeaders.rebounds.value})</span>
+                          </div>
                             </div>
                           )}
 
@@ -1211,7 +1466,7 @@ const HoopInsights = ({ setCurrentPage }) => {
                               <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm font-medium">Assists</span>
                                 <span className="text-warning font-bold">{stats.assists}</span>
-                              </div>
+                          </div>
                               <div className="h-2 bg-base-300 rounded-full overflow-hidden">
                                 <div 
                                   className="h-full bg-warning rounded-full transition-all duration-1000"
@@ -1220,7 +1475,7 @@ const HoopInsights = ({ setCurrentPage }) => {
                               </div>
                               <div className="flex justify-between text-xs opacity-60 mt-1">
                                 <span>Current: {stats.assists}</span>
-                                <span>Team High: {teamLeaders.assists.player} ({teamLeaders.assists.value})</span>
+                                <span>Team High: {teamLeaders.assists.players.map(p => p).join(', ')} ({teamLeaders.assists.value})</span>
                               </div>
                             </div>
                           )}
@@ -1240,7 +1495,7 @@ const HoopInsights = ({ setCurrentPage }) => {
                               </div>
                               <div className="flex justify-between text-xs opacity-60 mt-1">
                                 <span>Current: {stats.steals}</span>
-                                <span>Team High: {teamLeaders.steals.player} ({teamLeaders.steals.value})</span>
+                                <span>Team High: {teamLeaders.steals.players.map(p => p).join(', ')} ({teamLeaders.steals.value})</span>
                               </div>
                             </div>
                           )}
@@ -1260,7 +1515,7 @@ const HoopInsights = ({ setCurrentPage }) => {
                               </div>
                               <div className="flex justify-between text-xs opacity-60 mt-1">
                                 <span>Current: {stats.blocks}</span>
-                                <span>Team High: {teamLeaders.blocks.player} ({teamLeaders.blocks.value})</span>
+                                <span>Team High: {teamLeaders.blocks.players.map(p => p).join(', ')} ({teamLeaders.blocks.value})</span>
                               </div>
                             </div>
                           )}
@@ -1280,7 +1535,7 @@ const HoopInsights = ({ setCurrentPage }) => {
                               </div>
                               <div className="flex justify-between text-xs opacity-60 mt-1">
                                 <span>Current: {stats.turnovers}</span>
-                                <span>Team High: {teamLeaders.turnovers?.player} ({teamLeaders.turnovers?.value || 0})</span>
+                                <span>Team High: {teamLeaders.turnovers?.players.map(p => p).join(', ')} ({teamLeaders.turnovers?.value || 0})</span>
                               </div>
                             </div>
                           )}
@@ -1304,7 +1559,7 @@ const HoopInsights = ({ setCurrentPage }) => {
                                   {badge.level}
                                 </div>
                                 {/* Enhanced Tooltip */}
-                                <div className={`absolute ${index >= 4 ? 'top-full' : 'bottom-full'} left-1/2 -translate-x-1/2 ${index >= 4 ? 'mt-2' : 'mb-2'} w-48 p-3 bg-base-300 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10`}>
+                                <div className={`absolute ${index >= 4 ? 'top-full' : 'bottom-full'} left-1/2 -translate-x-1/2 ${index >= 4 ? 'mt-2' : 'mb-2'} w-64 p-3 bg-base-300 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10`}>
                                   <div className="font-medium mb-2">{badge.name} ({badge.level})</div>
                                   <div className="opacity-80 mb-2">{badge.description}</div>
                                   <div className="h-1 bg-base-content/20 rounded-full">
@@ -1314,20 +1569,29 @@ const HoopInsights = ({ setCurrentPage }) => {
                                     ></div>
                                   </div>
                                   <div className="mt-1 opacity-60">{badge.progress}% Complete</div>
+                                  <div className="mt-2 pt-2 border-t border-base-content/20">
+                                    <div className="font-medium">Calculation:</div>
+                                    <div className="opacity-80">{badge.metrics}</div>
+                                  </div>
                                 </div>
                               </div>
                             ))}
                           </div>
-                          
-                          {/* Badge Calculation Metrics */}
-                          <div className="absolute bottom-0 right-0 p-2 text-xs opacity-50 hover:opacity-100 transition-opacity">
-                            <div className="text-right italic">Badge Metrics:</div>
-                            {badges.map((badge, index) => (
-                              <div key={index} className="text-right">
-                                {badge.name}: {badge.metrics}
+                              <div className="relative group flex justify-end">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 cursor-help opacity-50 hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div className="absolute right-0 w-72 p-3 bg-base-300 rounded-lg text-xs opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                                  <div className="font-medium mb-2"></div>
+                                  {badges.map((badge, index) => (
+                                    <div key={index} className="text-right text-xs">
+                                      {badge.name}: {badge.metrics}
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            ))}
-                          </div>
+
+                         
                         </div>
                       </div>
                     );
@@ -1414,17 +1678,6 @@ const HoopInsights = ({ setCurrentPage }) => {
               <div className="card-body">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="card-title">Detailed Player Statistics</h3>
-                  <div className="relative group">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 cursor-help opacity-50 hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div className="absolute right-0 w-64 p-2 bg-base-300 rounded-lg text-sm opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-                      <div className="font-medium mb-1">+/- Calculation:</div>
-                      <div className="opacity-80">
-                        Points + Rebounds + Assists + Steals + Blocks - (FG Missed) - (FT Missed) - Turnovers
-                      </div>
-                    </div>
-                  </div>
                 </div>
 
                 {/* Team 1 */}
@@ -1441,7 +1694,7 @@ const HoopInsights = ({ setCurrentPage }) => {
                               direction: sortConfig.key === 'points' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
                             });
                           }} className="text-center cursor-pointer hover:bg-base-200">
-                            PTS {sortConfig.key === 'points' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            PTS {sortConfig.key === 'points' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
                           </th>
                           <th onClick={() => {
                             setSortConfig({
@@ -1449,17 +1702,31 @@ const HoopInsights = ({ setCurrentPage }) => {
                               direction: sortConfig.key === 'fgPercentage' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
                             });
                           }} className="text-center cursor-pointer hover:bg-base-200">
-                            FG% {sortConfig.key === 'fgPercentage' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            FG {sortConfig.key === 'fgPercentage' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
                           </th>
-                          <th className="text-center">3PT</th>
-                          <th className="text-center">FT</th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'threePtPercentage',
+                              direction: sortConfig.key === 'threePtPercentage' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            3PT {sortConfig.key === 'threePtPercentage' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+                          </th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'ftPercentage',
+                              direction: sortConfig.key === 'ftPercentage' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            FT {sortConfig.key === 'ftPercentage' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+                          </th>
                           <th onClick={() => {
                             setSortConfig({
                               key: 'rebounds',
                               direction: sortConfig.key === 'rebounds' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
                             });
                           }} className="text-center cursor-pointer hover:bg-base-200">
-                            REB {sortConfig.key === 'rebounds' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            REB {sortConfig.key === 'rebounds' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
                           </th>
                           <th onClick={() => {
                             setSortConfig({
@@ -1467,100 +1734,70 @@ const HoopInsights = ({ setCurrentPage }) => {
                               direction: sortConfig.key === 'assists' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
                             });
                           }} className="text-center cursor-pointer hover:bg-base-200">
-                            AST {sortConfig.key === 'assists' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            AST {sortConfig.key === 'assists' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
                           </th>
-                          <th className="text-center">STL</th>
-                          <th className="text-center">BLK</th>
-                          <th className="text-center">TO</th>
                           <th onClick={() => {
                             setSortConfig({
-                              key: 'efficiency',
-                              direction: sortConfig.key === 'efficiency' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                              key: 'steals',
+                              direction: sortConfig.key === 'steals' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
                             });
                           }} className="text-center cursor-pointer hover:bg-base-200">
-                            +/- {sortConfig.key === 'efficiency' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                            STL {sortConfig.key === 'steals' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+                          </th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'blocks',
+                              direction: sortConfig.key === 'blocks' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            BLK {sortConfig.key === 'blocks' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+                          </th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'turnovers',
+                              direction: sortConfig.key === 'turnovers' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            TO {sortConfig.key === 'turnovers' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
                           </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {game.teams.team1.players.map(player => {
-                          const stats = getPlayerStats(player, 'team1');
-                          const efficiency = stats.points + stats.rebounds + stats.assists + 
-                                          stats.steals + stats.blocks - 
-                                          (stats.fgAttempts - stats.fgMade) - 
-                                          (stats.ftAttempts - stats.ftMade) - 
-                                          stats.turnovers;
-                          return (
-                            <tr key={`team1-${player}`}>
-                              <td className="font-medium">{player}</td>
-                              <td className="text-center font-medium">{stats.points}</td>
-                              <td className="text-center">
-                                {stats.fgMade}/{stats.fgAttempts}
-                                <br />
-                                <span className="text-xs opacity-60">
-                                  {stats.fgPercentage}%
-                                </span>
-                              </td>
-                              <td className="text-center">
-                                {stats.threePtMade}/{stats.threePtAttempts}
-                                <br />
-                                <span className="text-xs opacity-60">
-                                  {stats.threePtPercentage}%
-                                </span>
-                              </td>
-                              <td className="text-center">
-                                {stats.ftMade}/{stats.ftAttempts}
-                                <br />
-                                <span className="text-xs opacity-60">
-                                  {stats.ftPercentage}%
-                                </span>
-                              </td>
-                              <td className="text-center">{stats.rebounds}</td>
-                              <td className="text-center">{stats.assists}</td>
-                              <td className="text-center">{stats.steals}</td>
-                              <td className="text-center">{stats.blocks}</td>
-                              <td className="text-center">{stats.turnovers}</td>
-                              <td className={`text-center font-medium ${
-                                efficiency > 0 ? 'text-success' : 
-                                efficiency < 0 ? 'text-error' : ''
-                              }`}>
-                                {efficiency > 0 ? '+' : ''}{efficiency}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                        {/* Team 1 Totals */}
-                        <tr className="bg-base-200 font-medium">
-                          <td>Team Totals</td>
-                          <td className="text-center">{getTeamStats('team1').points}</td>
-                          <td className="text-center">
-                            {getTeamStats('team1').fgMade}/{getTeamStats('team1').fgAttempts}
-                            <br />
-                            <span className="text-xs opacity-60">
-                              {((getTeamStats('team1').fgMade/getTeamStats('team1').fgAttempts)*100||0).toFixed(1)}%
-                            </span>
-                          </td>
-                          <td className="text-center">
-                            {getTeamStats('team1').threePtMade}/{getTeamStats('team1').threePtAttempts}
-                            <br />
-                            <span className="text-xs opacity-60">
-                              {((getTeamStats('team1').threePtMade/getTeamStats('team1').threePtAttempts)*100||0).toFixed(1)}%
-                            </span>
-                          </td>
-                          <td className="text-center">
-                            {getTeamStats('team1').ftMade}/{getTeamStats('team1').ftAttempts}
-                            <br />
-                            <span className="text-xs opacity-60">
-                              {((getTeamStats('team1').ftMade/getTeamStats('team1').ftAttempts)*100||0).toFixed(1)}%
-                            </span>
-                          </td>
-                          <td className="text-center">{getTeamStats('team1').rebounds}</td>
-                          <td className="text-center">{getTeamStats('team1').assists}</td>
-                          <td className="text-center">{getTeamStats('team1').steals}</td>
-                          <td className="text-center">{getTeamStats('team1').blocks}</td>
-                          <td className="text-center">{getTeamStats('team1').turnovers}</td>
-                          <td></td>
-                        </tr>
+                        {sortData(game.teams.team1.players.map(player => ({
+                          ...getPlayerStats(player, 'team1'),
+                          name: player
+                        })), sortConfig.key).map(player => (
+                          <tr key={`team1-${player.name}`}>
+                            <td className="font-medium">{player.name}</td>
+                            <td className="text-center font-medium">{player.points}</td>
+                            <td className="text-center">
+                              {player.fgMade}/{player.fgAttempts}
+                              <br />
+                              <span className="text-xs opacity-60">
+                                {player.fgPercentage}%
+                              </span>
+                            </td>
+                            <td className="text-center">
+                              {player.threePtMade}/{player.threePtAttempts}
+                              <br />
+                              <span className="text-xs opacity-60">
+                                {player.threePtPercentage}%
+                              </span>
+                            </td>
+                            <td className="text-center">
+                              {player.ftMade}/{player.ftAttempts}
+                              <br />
+                              <span className="text-xs opacity-60">
+                                {player.ftPercentage}%
+                              </span>
+                            </td>
+                            <td className="text-center">{player.rebounds}</td>
+                            <td className="text-center">{player.assists}</td>
+                            <td className="text-center">{player.steals}</td>
+                            <td className="text-center">{player.blocks}</td>
+                            <td className="text-center">{player.turnovers}</td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -1574,97 +1811,116 @@ const HoopInsights = ({ setCurrentPage }) => {
                       <thead>
                         <tr>
                           <th>Player</th>
-                          <th className="text-center">PTS</th>
-                          <th className="text-center">FG</th>
-                          <th className="text-center">3PT</th>
-                          <th className="text-center">FT</th>
-                          <th className="text-center">REB</th>
-                          <th className="text-center">AST</th>
-                          <th className="text-center">STL</th>
-                          <th className="text-center">BLK</th>
-                          <th className="text-center">TO</th>
-                          <th className="text-center">+/-</th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'points',
+                              direction: sortConfig.key === 'points' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            PTS {sortConfig.key === 'points' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+                          </th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'fgPercentage',
+                              direction: sortConfig.key === 'fgPercentage' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            FG {sortConfig.key === 'fgPercentage' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+                          </th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'threePtPercentage',
+                              direction: sortConfig.key === 'threePtPercentage' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            3PT {sortConfig.key === 'threePtPercentage' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+                          </th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'ftPercentage',
+                              direction: sortConfig.key === 'ftPercentage' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            FT {sortConfig.key === 'ftPercentage' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+                          </th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'rebounds',
+                              direction: sortConfig.key === 'rebounds' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            REB {sortConfig.key === 'rebounds' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+                          </th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'assists',
+                              direction: sortConfig.key === 'assists' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            AST {sortConfig.key === 'assists' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+                          </th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'steals',
+                              direction: sortConfig.key === 'steals' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            STL {sortConfig.key === 'steals' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+                          </th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'blocks',
+                              direction: sortConfig.key === 'blocks' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            BLK {sortConfig.key === 'blocks' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+                          </th>
+                          <th onClick={() => {
+                            setSortConfig({
+                              key: 'turnovers',
+                              direction: sortConfig.key === 'turnovers' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                            });
+                          }} className="text-center cursor-pointer hover:bg-base-200">
+                            TO {sortConfig.key === 'turnovers' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {game.teams.team2.players.map(player => {
-                          const stats = getPlayerStats(player, 'team2');
-                          const efficiency = stats.points + stats.rebounds + stats.assists + 
-                                          stats.steals + stats.blocks - 
-                                          (stats.fgAttempts - stats.fgMade) - 
-                                          (stats.ftAttempts - stats.ftMade) - 
-                                          stats.turnovers;
-                          return (
-                            <tr key={`team2-${player}`}>
-                              <td className="font-medium">{player}</td>
-                              <td className="text-center font-medium">{stats.points}</td>
-                              <td className="text-center">
-                                {stats.fgMade}/{stats.fgAttempts}
-                                <br />
-                                <span className="text-xs opacity-60">
-                                  {stats.fgPercentage}%
-                                </span>
-                              </td>
-                              <td className="text-center">
-                                {stats.threePtMade}/{stats.threePtAttempts}
-                                <br />
-                                <span className="text-xs opacity-60">
-                                  {stats.threePtPercentage}%
-                                </span>
-                              </td>
-                              <td className="text-center">
-                                {stats.ftMade}/{stats.ftAttempts}
-                                <br />
-                                <span className="text-xs opacity-60">
-                                  {stats.ftPercentage}%
-                                </span>
-                              </td>
-                              <td className="text-center">{stats.rebounds}</td>
-                              <td className="text-center">{stats.assists}</td>
-                              <td className="text-center">{stats.steals}</td>
-                              <td className="text-center">{stats.blocks}</td>
-                              <td className="text-center">{stats.turnovers}</td>
-                              <td className={`text-center font-medium ${
-                                efficiency > 0 ? 'text-success' : 
-                                efficiency < 0 ? 'text-error' : ''
-                              }`}>
-                                {efficiency > 0 ? '+' : ''}{efficiency}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                        {/* Team 2 Totals */}
-                        <tr className="bg-base-200 font-medium">
-                          <td>Team Totals</td>
-                          <td className="text-center">{getTeamStats('team2').points}</td>
-                          <td className="text-center">
-                            {getTeamStats('team2').fgMade}/{getTeamStats('team2').fgAttempts}
-                            <br />
-                            <span className="text-xs opacity-60">
-                              {((getTeamStats('team2').fgMade/getTeamStats('team2').fgAttempts)*100||0).toFixed(1)}%
-                            </span>
-                          </td>
-                          <td className="text-center">
-                            {getTeamStats('team2').threePtMade}/{getTeamStats('team2').threePtAttempts}
-                            <br />
-                            <span className="text-xs opacity-60">
-                              {((getTeamStats('team2').threePtMade/getTeamStats('team2').threePtAttempts)*100||0).toFixed(1)}%
-                            </span>
-                          </td>
-                          <td className="text-center">
-                            {getTeamStats('team2').ftMade}/{getTeamStats('team2').ftAttempts}
-                            <br />
-                            <span className="text-xs opacity-60">
-                              {((getTeamStats('team2').ftMade/getTeamStats('team2').ftAttempts)*100||0).toFixed(1)}%
-                            </span>
-                          </td>
-                          <td className="text-center">{getTeamStats('team2').rebounds}</td>
-                          <td className="text-center">{getTeamStats('team2').assists}</td>
-                          <td className="text-center">{getTeamStats('team2').steals}</td>
-                          <td className="text-center">{getTeamStats('team2').blocks}</td>
-                          <td className="text-center">{getTeamStats('team2').turnovers}</td>
-                          <td></td>
-                        </tr>
+                        {sortData(game.teams.team2.players.map(player => ({
+                          ...getPlayerStats(player, 'team2'),
+                          name: player
+                        })), sortConfig.key).map(player => (
+                          <tr key={`team2-${player.name}`}>
+                            <td className="font-medium">{player.name}</td>
+                            <td className="text-center font-medium">{player.points}</td>
+                            <td className="text-center">
+                              {player.fgMade}/{player.fgAttempts}
+                              <br />
+                              <span className="text-xs opacity-60">
+                                {player.fgPercentage}%
+                              </span>
+                            </td>
+                            <td className="text-center">
+                              {player.threePtMade}/{player.threePtAttempts}
+                              <br />
+                              <span className="text-xs opacity-60">
+                                {player.threePtPercentage}%
+                              </span>
+                            </td>
+                            <td className="text-center">
+                              {player.ftMade}/{player.ftAttempts}
+                              <br />
+                              <span className="text-xs opacity-60">
+                                {player.ftPercentage}%
+                              </span>
+                            </td>
+                            <td className="text-center">{player.rebounds}</td>
+                            <td className="text-center">{player.assists}</td>
+                            <td className="text-center">{player.steals}</td>
+                            <td className="text-center">{player.blocks}</td>
+                            <td className="text-center">{player.turnovers}</td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -1725,6 +1981,7 @@ const HoopInsights = ({ setCurrentPage }) => {
         )}
         
         {/* Call to Action */}
+        {!currentUser && (
         <div className="text-center mt-12">
           <h3 className="text-xl font-bold mb-3">Want to track your own games?</h3>
           <p className="opacity-70 mb-6">Sign up for free and start tracking basketball stats with HoopInsights</p>
@@ -1743,6 +2000,21 @@ const HoopInsights = ({ setCurrentPage }) => {
             </button>
           </div>
         </div>
+        )}
+
+          {/* Navigation buttons */}
+          <div className="flex justify-center mt-2 mb-8 space-x-4 pt-8">
+            <button
+              onClick={() => setCurrentPage('saved-games')}
+              className="btn btn-outline btn-sm px-4 group flex items-center gap-2 hover:gap-3 transition-all"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Saved Games
+            </button>
+         
+          </div>
       </div>
     </div>
   );
