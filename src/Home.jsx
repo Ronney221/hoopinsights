@@ -33,15 +33,15 @@ const Home = ({ setCurrentPage }) => {
                 className="btn btn-primary btn-md sm:btn-lg normal-case font-medium w-full sm:w-auto sm:min-w-40 md:min-w-52 shadow-lg hover:shadow-primary/20 hover:scale-105 transition-all"
                 aria-label="Get Started"
               >
-                Get Started Free
+                Start Tracking
               </button>
               
               <button 
                 onClick={() => setCurrentPage('saved-games')}
                 className="btn btn-outline btn-md sm:btn-lg border-2 normal-case font-medium w-full sm:w-auto sm:min-w-40 md:min-w-52 hover:border-primary hover:scale-105 transition-all"
-                aria-label="View Demo Games"
+                aria-label={currentUser ? "View Saved Games" : "View Demo Games"}
               >
-                View Demo Games
+                {currentUser ? "View Saved Games" : "View Demo Games"}
               </button>
             </div>
           </div>

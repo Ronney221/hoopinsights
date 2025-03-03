@@ -10,6 +10,7 @@ import Home from './Home';
 import Youtube from './Youtube';
 import SavedGames from './SavedGames';
 import SharedGame from './SharedGame';
+import SeasonStats from './SeasonStats';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
@@ -102,6 +103,9 @@ function App() {
         break;
       case "saved-games":
         content = <SavedGames setCurrentPage={setCurrentPage} />;
+        break;
+      case "season-stats":
+        content = <SeasonStats setCurrentPage={setCurrentPage} />;
         break;
       default:
         content = <Home setCurrentPage={setCurrentPage} />;

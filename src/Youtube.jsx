@@ -660,6 +660,50 @@ const Youtube = ({ setCurrentPage }) => {
     return playerIds.map(id => getPlayerStats(id));
   };
 
+  // Function to undo the most recent stat
+  const undoLastStat = () => {
+    setStats(prevStats => {
+      if (prevStats.length === 0) {
+        toast.info("No stats to undo");
+        return prevStats;
+      }
+      
+      // Get the last stat for the notification
+      const lastStat = prevStats[prevStats.length - 1];
+      const statDescription = `${lastStat.type} for ${lastStat.player} at ${lastStat.formattedTime}`;
+      
+      // Create a copy without the last stat
+      const updatedStats = prevStats.slice(0, -1);
+      
+      // Save to local storage
+      saveStatsToLocalStorage(updatedStats);
+      
+      toast.success(`Undone: ${statDescription}`);
+      return updatedStats;
+    });
+  };
+  
+  // Function to delete a specific stat by ID
+  const deleteStat = (statId) => {
+    // Find the stat to provide context in the confirmation
+    const statToDelete = stats.find(stat => stat.id === statId);
+    if (!statToDelete) return;
+    
+    const statDescription = `${statToDelete.type} for ${statToDelete.player} at ${statToDelete.formattedTime}`;
+    
+    if (window.confirm(`Are you sure you want to delete this stat: ${statDescription}?`)) {
+      setStats(prevStats => {
+        const updatedStats = prevStats.filter(stat => stat.id !== statId);
+        
+        // Save to local storage
+        saveStatsToLocalStorage(updatedStats);
+        
+        toast.success("Stat deleted");
+        return updatedStats;
+      });
+    }
+  };
+
   // Function to clear all stats
   const clearStats = () => {
     if (window.confirm("Are you sure you want to clear all stats? This cannot be undone.")) {
@@ -680,6 +724,8 @@ const Youtube = ({ setCurrentPage }) => {
           <p className="text-lg md:text-xl opacity-80 max-w-2xl mx-auto mb-8">
             Track game stats in real-time while watching basketball videos
           </p>
+          
+         
           
           {/* Video URL Input Form */}
           {!videoId && (
@@ -822,13 +868,13 @@ const Youtube = ({ setCurrentPage }) => {
                     <div className="relative">
                       <div className="overflow-y-auto max-h-80 scrollbar-thin scrollbar-thumb-base-300 scrollbar-track-base-100 pr-2 pb-1 custom-scrollbar">
                         <table className="table table-zebra w-full">
-                          <thead className="sticky top-0 bg-base-100 z-10 shadow-sm">
+                          <thead className="bg-base-200 sticky top-0">
                             <tr>
                               <th>Time</th>
                               <th>Team</th>
                               <th>Player</th>
                               <th>Stat</th>
-                              <th>Action</th>
+                              <th className="w-28">Actions</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -847,12 +893,23 @@ const Youtube = ({ setCurrentPage }) => {
                                   ''
                                 }>{stat.type}</td>
                                 <td>
-                                  <button 
-                                    onClick={() => jumpToStatTime(stat.timestamp)}
-                                    className="btn btn-xs btn-outline"
-                                  >
-                                    Jump
-                                  </button>
+                                  <div className="flex gap-1">
+                                    <button 
+                                      onClick={() => jumpToStatTime(stat.timestamp)}
+                                      className="btn btn-xs btn-outline"
+                                    >
+                                      Jump
+                                    </button>
+                                    <button 
+                                      onClick={() => deleteStat(stat.id)}
+                                      className="btn btn-xs btn-outline btn-error"
+                                      title="Delete this stat"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             ))}
@@ -1076,6 +1133,20 @@ const Youtube = ({ setCurrentPage }) => {
                         </div>
                       </div>
                     </div>
+                    
+                    {/* Undo button */}
+                    <div className="mt-6 border-t border-base-300 pt-4">
+                      <button 
+                        onClick={undoLastStat}
+                        className="btn btn-outline btn-block"
+                        disabled={stats.length === 0}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                        </svg>
+                        Undo Last Stat
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1266,16 +1337,25 @@ const Youtube = ({ setCurrentPage }) => {
             </div>
           )}
           
-          {/* Back Button */}
-          <div className="flex justify-center mt-8">
-            <button 
+           {/* Navigation buttons */}
+           <div className="flex justify-center mt-2 mb-8 space-x-4">
+            <button
               onClick={() => setCurrentPage('home')}
-              className="btn btn-outline btn-sm rounded-xl"
+              className="btn btn-outline btn-sm px-4 group flex items-center gap-2 hover:gap-3 transition-all"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              Back to Home
+              Home
+            </button>
+            <button
+              onClick={() => setCurrentPage('saved-games')}
+              className="btn btn-outline btn-sm px-4 group flex items-center gap-2 hover:gap-3 transition-all"
+            >
+              Saved Games
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
             </button>
           </div>
         </div>
