@@ -1019,7 +1019,7 @@ const SavedGames = ({ setCurrentPage }) => {
                     className="h-10 px-4 rounded-full text-sm font-medium hover:bg-base-200 transition-all flex items-center"
                     onClick={toggleMultiSelectMode}
                   >
-                    Select Games
+                    Start a New Season
                   </button>
                 ) : (
                   <button
