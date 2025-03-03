@@ -6,11 +6,17 @@ const NotificationContext = createContext();
 
 export const useNotification = () => useContext(NotificationContext);
 
+// Generate a more unique ID for notifications
+const generateUniqueId = () => {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+};
+
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
 
   const addNotification = (message, type = 'info', duration = 5000) => {
-    const id = Date.now();
+    // Using a more unique ID to prevent React key conflicts
+    const id = generateUniqueId();
     setNotifications(prev => [...prev, { id, message, type, duration }]);
     
     if (duration > 0) {
