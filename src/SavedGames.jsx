@@ -928,102 +928,107 @@ const SavedGames = ({ setCurrentPage }) => {
            
             
             {(currentUser || (!currentUser && games.length > 0)) && !loading && games.length > 0 && (
-              <div className="mt-8 bg-base-100/80 backdrop-blur-sm p-1 rounded-full border border-base-200 shadow-sm flex flex-wrap gap-1">
-                <div className="flex flex-wrap items-center gap-2 mb-4">
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => {
-                        setFilterOption('all');
-                        setSelectedSeason(null);
-                      }}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                        filterOption === 'all' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200'
+              <div className="mt-8 bg-base-100/80 backdrop-blur-sm p-1 rounded-full border border-base-200 shadow-sm flex items-center flex-wrap gap-1">
+                {/* Filter buttons - all in a single flex container with items-center */}
+                <button
+                  onClick={() => {
+                    setFilterOption('all');
+                    setSelectedSeason(null);
+                  }}
+                  className={`h-10 px-4 rounded-full text-sm font-medium transition-all flex items-center ${
+                    filterOption === 'all' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200'
+                  }`}
+                >
+                  All Games
+                </button>
+                <button
+                  onClick={() => {
+                    setFilterOption('recent');
+                    setSelectedSeason(null);
+                  }}
+                  className={`h-10 px-4 rounded-full text-sm font-medium transition-all flex items-center ${
+                    filterOption === 'recent' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200'
+                  }`}
+                >
+                  Last 7 Days
+                </button>
+                <button
+                  onClick={() => {
+                    setFilterOption('month');
+                    setSelectedSeason(null);
+                  }}
+                  className={`h-10 px-4 rounded-full text-sm font-medium transition-all flex items-center ${
+                    filterOption === 'month' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200'
+                  }`}
+                >
+                  This Month
+                </button>
+                
+                {/* Season Filter Dropdown */}
+                {seasons.length > 0 && (
+                  <div className="dropdown dropdown-end inline-flex items-center">
+                    <button 
+                      type="button"
+                      tabIndex={0} 
+                      className={`h-10 px-4 rounded-full text-sm font-medium transition-all flex items-center ${
+                        filterOption === 'season' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200'
                       }`}
                     >
-                      All Games
+                      {selectedSeason
+                        ? seasons.find(s => s._id === selectedSeason)?.name || 'Season'
+                        : 'Season'
+                      }
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </button>
-                    <button
-                      onClick={() => {
-                        setFilterOption('recent');
-                        setSelectedSeason(null);
-                      }}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                        filterOption === 'recent' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200'
-                      }`}
-                    >
-                      Last 7 Days
-                    </button>
-                    <button
-                      onClick={() => {
-                        setFilterOption('month');
-                        setSelectedSeason(null);
-                      }}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                        filterOption === 'month' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200'
-                      }`}
-                    >
-                      This Month
-                    </button>
-                    
-                    {/* Season Filter Dropdown */}
-                    {seasons.length > 0 && (
-                      <div className="dropdown dropdown-end">
-                        <label 
-                          tabIndex={0} 
-                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                            filterOption === 'season' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200'
-                          }`}
-                        >
-                          {selectedSeason
-                            ? seasons.find(s => s._id === selectedSeason)?.name || 'Season'
-                            : 'Season'
-                          }
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </label>
-                        <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 max-h-96 overflow-y-auto">
-                          {seasons.map(season => (
-                            <li key={season._id}>
-                              <a 
-                                onClick={() => {
-                                  setSelectedSeason(season._id);
-                                  setFilterOption('season'); // Make sure to set the filter option to 'season'
-                                }} 
-                                className={selectedSeason === season._id ? 'active' : ''}
-                              >
-                                {season.name}
-                                <span className="badge badge-sm">{season.gameIds ? season.gameIds.length : 0}</span>
-                              </a>
-                            </li>
-                          ))}
-                          <li className="menu-title">
-                            <a onClick={() => setCurrentPage('season-stats')}>
-                              Manage Seasons
-                            </a>
-                          </li>
-                        </ul>
-                      </div>
-                    )}
+                    <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 max-h-96 overflow-y-auto">
+                      {seasons.map(season => (
+                        <li key={season._id}>
+                          <a 
+                            onClick={() => {
+                              setSelectedSeason(season._id);
+                              setFilterOption('season'); // Make sure to set the filter option to 'season'
+                            }} 
+                            className={selectedSeason === season._id ? 'active' : ''}
+                          >
+                            {season.name}
+                            <span className="badge badge-sm">{season.gameIds ? season.gameIds.length : 0}</span>
+                          </a>
+                        </li>
+                      ))}
+                      <li className="menu-title">
+                        <a onClick={() => setCurrentPage('season-stats')}>
+                          Manage Seasons
+                        </a>
+                      </li>
+                    </ul>
                   </div>
-                  
-                  <div className="flex-grow"></div>
-                  <button 
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${multiSelectMode ? 'bg-accent text-accent-content shadow-md' : 'hover:bg-base-200'}`}
+                )}
+                
+                <div className="flex-grow"></div>
+                
+                {/* Multi-select mode toggle */}
+                {!multiSelectMode ? (
+                  <button
+                    className="h-10 px-4 rounded-full text-sm font-medium hover:bg-base-200 transition-all flex items-center"
                     onClick={toggleMultiSelectMode}
                   >
-                    {multiSelectMode ? 'Cancel Selection' : 'Select Games'}
+                    Select Games
                   </button>
-                  {multiSelectMode && (
-                    <button 
-                      className="px-4 py-2 rounded-full text-sm font-medium transition-all bg-success text-success-content shadow-md"
-                      onClick={createSeasonFromSelection}
-                      disabled={selectedGames.length === 0}
-                    >
-                      Create Season ({selectedGames.length})
-                    </button>
-                  )}
-                </div>
+                ) : (
+                  <button
+                    className={`h-10 px-4 rounded-full text-sm font-medium transition-all flex items-center ${
+                      selectedGames.length > 0
+                        ? 'bg-success text-success-content shadow-md'
+                        : 'bg-warning text-warning-content shadow-md'
+                    }`}
+                    onClick={createSeasonFromSelection}
+                    disabled={selectedGames.length === 0}
+                  >
+                    Create Season ({selectedGames.length})
+                  </button>
+                )}
               </div>
             )}
           </div>
