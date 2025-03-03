@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext';
-import { toast } from 'react-toastify';
+import { useNotification } from './contexts/NotificationContext';
 
 const Profile = ({ setCurrentPage }) => {
   const { currentUser, updateUserProfile } = useAuth();
+  const { success, error: showError, warning, info } = useNotification();
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [newUsername, setNewUsername] = useState(currentUser?.displayName || '');
@@ -20,17 +21,17 @@ const Profile = ({ setCurrentPage }) => {
   const handleUpdateUsername = async (e) => {
     e.preventDefault();
     if (!newUsername.trim()) {
-      toast.error('Username cannot be empty');
+      showError('Username cannot be empty');
       return;
     }
 
     try {
       setLoading(true);
       await updateUserProfile({ displayName: newUsername.trim() });
-      toast.success('Username updated successfully!');
+      success('Username updated successfully!');
       setIsEditing(false);
-    } catch (error) {
-      toast.error(error.message || 'Failed to update username');
+    } catch (err) {
+      showError(err.message || 'Failed to update username');
     } finally {
       setLoading(false);
     }

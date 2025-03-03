@@ -11,8 +11,8 @@ import Youtube from './Youtube';
 import SavedGames from './SavedGames';
 import SharedGame from './SharedGame';
 import SeasonStats from './SeasonStats';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import NotificationTest from './NotificationTest';
+import { NotificationProvider } from './contexts/NotificationContext';
 import './App.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -107,34 +107,28 @@ function App() {
       case "season-stats":
         content = <SeasonStats setCurrentPage={setCurrentPage} />;
         break;
+      case "notification-test":
+        content = <NotificationTest setCurrentPage={setCurrentPage} />;
+        break;
       default:
         content = <Home setCurrentPage={setCurrentPage} />;
     }
   }
 
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <div className="min-h-screen flex flex-col font-sans">
-          <Navbar setCurrentPage={setCurrentPage} />
-          <main className="flex-grow">
-            {content}
-          </main>
-          <Footer />
-          <ToastContainer 
-            position="top-right"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-          />
-        </div>
-      </ThemeProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <NotificationProvider>
+          <div className="min-h-screen flex flex-col font-sans">
+            <Navbar setCurrentPage={setCurrentPage} />
+            <main className="flex-grow">
+              {content}
+            </main>
+            <Footer />
+          </div>
+        </NotificationProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext';
-import { toast } from 'react-toastify';
+import { useNotification } from './contexts/NotificationContext';
 
 const Login = ({ setCurrentPage }) => {
   const [formData, setFormData] = useState({
@@ -10,6 +10,7 @@ const Login = ({ setCurrentPage }) => {
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(null);
   const { login } = useAuth();
+  const { success, error: showError, warning, info } = useNotification();
 
   // Apple-inspired animation for form appearance
   useEffect(() => {
@@ -31,17 +32,18 @@ const Login = ({ setCurrentPage }) => {
     e.preventDefault();
     
     if (!formData.email || !formData.password) {
-      toast.error('Please fill in all required fields');
+      info('Please fill in all required fields');
       return;
     }
 
     try {
       setLoading(true);
       await login(formData.email, formData.password);
-      toast.success('Logged in successfully!');
+      success('Logged in successfully!');
       setCurrentPage('home');
-    } catch (error) {
-      toast.error(error.message || 'Failed to login');
+    } catch (err) {
+      console.error('Login error:', err);
+      showError(err.message || 'Failed to login');
     } finally {
       setLoading(false);
     }

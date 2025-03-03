@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from './contexts/AuthContext';
-import { toast } from 'react-toastify';
+import { useNotification } from './contexts/NotificationContext';
 
 const VerifyEmail = ({ setCurrentPage }) => {
   const [verifying, setVerifying] = useState(true);
   const { verifyEmail } = useAuth();
+  const { success, error: showError, warning, info } = useNotification();
 
   useEffect(() => {
     const verifyEmailWithCode = async () => {
@@ -15,14 +16,14 @@ const VerifyEmail = ({ setCurrentPage }) => {
 
         if (actionCode) {
           await verifyEmail(actionCode);
-          toast.success('Email verified successfully!');
+          success('Email verified successfully!');
           setCurrentPage('home');
         } else {
-          toast.error('No verification code found in URL');
+          showError('No verification code found in URL');
           setCurrentPage('login');
         }
-      } catch (error) {
-        toast.error(error.message || 'Failed to verify email');
+      } catch (err) {
+        showError(err.message || 'Failed to verify email');
         setCurrentPage('login');
       } finally {
         setVerifying(false);

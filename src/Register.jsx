@@ -1,7 +1,7 @@
 // src/Hero.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext';
-import { toast } from 'react-toastify';
+import { useNotification } from './contexts/NotificationContext';
 
 const Register = ({ setCurrentPage }) => {
   const [formData, setFormData] = useState({
@@ -19,6 +19,7 @@ const Register = ({ setCurrentPage }) => {
     hasNumber: null
   });
   const { signup, resendVerificationEmail, verificationStatus } = useAuth();
+  const { success, error: showError, warning, info } = useNotification();
 
   // Apple-inspired animation for form appearance
   useEffect(() => {
@@ -31,9 +32,9 @@ const Register = ({ setCurrentPage }) => {
   // Monitor verification status changes
   useEffect(() => {
     if (verificationStatus === 'verified' && verificationSent) {
-      toast.success('Email verified successfully!');
+      success('Email verified successfully!');
     }
-  }, [verificationStatus, verificationSent]);
+  }, [verificationStatus, verificationSent, success]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -78,14 +79,14 @@ const Register = ({ setCurrentPage }) => {
     e.preventDefault();
     
     if (!formData.email || !formData.password) {
-      toast.error('Please fill in all required fields');
+      showError('Please fill in all required fields');
       return;
     }
     
     // Validate password with all requirements
     const isPasswordValid = validatePassword(formData.password);
     if (!isPasswordValid) {
-      toast.error('Password does not meet all requirements');
+      showError('Password does not meet all requirements');
       return;
     }
 
@@ -93,9 +94,9 @@ const Register = ({ setCurrentPage }) => {
       setLoading(true);
       await signup(formData.email, formData.password, formData.username);
       setVerificationSent(true);
-      toast.success('Account created! Please check your email to verify your account.');
-    } catch (error) {
-      toast.error(error.message || 'Failed to create account');
+      success('Account created! Please check your email to verify your account.');
+    } catch (err) {
+      showError(err.message || 'Failed to create account');
       setVerificationSent(false);
     } finally {
       setLoading(false);
@@ -106,9 +107,9 @@ const Register = ({ setCurrentPage }) => {
     try {
       setLoading(true);
       await resendVerificationEmail();
-      toast.success('Verification email resent! Please check your inbox.');
-    } catch (error) {
-      toast.error(error.message || 'Failed to resend verification email');
+      success('Verification email resent! Please check your inbox.');
+    } catch (err) {
+      showError(err.message || 'Failed to resend verification email');
     } finally {
       setLoading(false);
     }
@@ -116,7 +117,7 @@ const Register = ({ setCurrentPage }) => {
 
   const handleGetStarted = () => {
     setCurrentPage('home');
-    toast.success('Welcome to HoopInsights! Let\'s get started with your basketball analytics.');
+    success('Welcome to HoopInsights! Let\'s get started with your basketball analytics.');
   };
 
   if (verificationSent) {

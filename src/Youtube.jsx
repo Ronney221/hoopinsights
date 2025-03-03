@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { toast } from 'react-toastify';
+import { useNotification } from './contexts/NotificationContext';
 import { useAuth } from './contexts/AuthContext';
 import { STATS_ENDPOINTS, STATS_V2_ENDPOINTS, createApiHeaders } from './config/apiConfig';
 
@@ -30,6 +30,7 @@ const Youtube = ({ setCurrentPage }) => {
   const [isSaved, setIsSaved] = useState(false);
   const [recentStat, setRecentStat] = useState(null);
   const recentStatTimeoutRef = useRef(null);
+  const { success, error: showError, warning, info } = useNotification();
 
   // Load YouTube API
   useEffect(() => {
@@ -55,10 +56,10 @@ const Youtube = ({ setCurrentPage }) => {
         // Clear the continued game data to prevent reloading on refresh
         localStorage.removeItem('continue-game');
         
-        toast.info('Loaded saved game. You can continue tracking stats.');
+        info('Loaded saved game. You can continue tracking stats.');
       }
-    } catch (error) {
-      console.error('Error loading continued game:', error);
+    } catch (err) {
+      console.error('Error loading continued game:', err);
     }
     
     // Load the IFrame Player API code asynchronously
@@ -99,8 +100,8 @@ const Youtube = ({ setCurrentPage }) => {
       if (playerRef.current) {
         try {
           playerRef.current.destroy();
-        } catch (e) {
-          console.error('Error destroying player:', e);
+        } catch (err) {
+          console.error('Error destroying player:', err);
         }
       }
     };
@@ -129,7 +130,7 @@ const Youtube = ({ setCurrentPage }) => {
     e.preventDefault();
     
     if (!videoUrl) {
-      toast.error('Please enter a YouTube URL');
+      warning('Please enter a YouTube URL');
       return;
     }
 
@@ -139,7 +140,7 @@ const Youtube = ({ setCurrentPage }) => {
       const id = extractVideoId(videoUrl);
       
       if (!id) {
-        toast.error('Invalid YouTube URL. Please enter a valid URL');
+        warning('Invalid YouTube URL. Please enter a valid URL');
         setLoading(false);
         return;
       }
@@ -156,7 +157,7 @@ const Youtube = ({ setCurrentPage }) => {
           
           if (!playerContainer) {
             console.error('Player container not found!');
-            toast.error('Error loading player. Please try again.');
+            warning('Error loading player. Please try again.');
             setLoading(false);
             return;
           }
@@ -165,7 +166,7 @@ const Youtube = ({ setCurrentPage }) => {
             console.log('YouTube API is ready, initializing player');
             initializePlayer(id);
             setLoading(false);
-            toast.success('Video loaded successfully!');
+            success('Video loaded successfully!');
           } else {
             console.log('YouTube API not ready yet, waiting...');
             // If the API isn't loaded yet, set a function to be called when it is
@@ -173,16 +174,16 @@ const Youtube = ({ setCurrentPage }) => {
               console.log('YouTube API now ready, initializing player');
               initializePlayer(id);
               setLoading(false);
-              toast.success('Video loaded successfully!');
+              success('Video loaded successfully!');
             };
           }
         }, 500);
       };
       
       loadPlayer();
-    } catch (error) {
-      console.error('Error in handleSubmit:', error);
-      toast.error('Error loading video. Please try again.');
+    } catch (err) {
+      console.error('Error in handleSubmit:', err);
+      warning('Error loading video. Please try again.');
       setLoading(false);
     }
   };
@@ -195,8 +196,8 @@ const Youtube = ({ setCurrentPage }) => {
       if (playerRef.current) {
         try {
           playerRef.current.destroy();
-        } catch (e) {
-          console.error('Error destroying old player:', e);
+        } catch (err) {
+          console.error('Error destroying old player:', err);
         }
       }
       
@@ -215,7 +216,7 @@ const Youtube = ({ setCurrentPage }) => {
           'onStateChange': onPlayerStateChange,
           'onError': (event) => {
             console.error('YouTube player error:', event.data);
-            toast.error('Error playing video. Please try another video.');
+            warning('Error playing video. Please try another video.');
           }
         }
       });
@@ -223,9 +224,9 @@ const Youtube = ({ setCurrentPage }) => {
       console.log('Player created successfully:', newPlayer);
       setPlayer(newPlayer);
       playerRef.current = newPlayer;
-    } catch (error) {
-      console.error('Error initializing YouTube player:', error);
-      toast.error('Error initializing video player. Please try again.');
+    } catch (err) {
+      console.error('Error initializing YouTube player:', err);
+      warning('Error initializing video player. Please try again.');
     }
   };
 
@@ -243,8 +244,8 @@ const Youtube = ({ setCurrentPage }) => {
         if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
           setCurrentTime(playerRef.current.getCurrentTime());
         }
-      } catch (error) {
-        console.error('Error getting current time:', error);
+      } catch (err) {
+        console.error('Error getting current time:', err);
       }
     }, 1000);
   };
@@ -253,8 +254,8 @@ const Youtube = ({ setCurrentPage }) => {
     try {
       // Update playing state
       setIsPlaying(event.data === window.YT.PlayerState.PLAYING);
-    } catch (error) {
-      console.error('Error in player state change:', error);
+    } catch (err) {
+      console.error('Error in player state change:', err);
     }
   };
 
@@ -272,14 +273,14 @@ const Youtube = ({ setCurrentPage }) => {
   // Handle recording a stat
   const recordStat = (statType, value = 1) => {
     if (!selectedPlayer) {
-      toast.warning('Please select a player first');
+      warning('Please select a player first');
       return;
     }
 
     try {
       // Check if player is properly initialized
       if (!player || !playerRef.current || typeof playerRef.current.getCurrentTime !== 'function') {
-        toast.error('Video player is not ready yet. Please wait a moment and try again.');
+        warning('Video player is not ready yet. Please wait a moment and try again.');
         return;
       }
       
@@ -322,21 +323,19 @@ const Youtube = ({ setCurrentPage }) => {
       }, 4000);
       
       // Show quick toast notification - don't specify position
-      toast.success(`Recorded: ${statType} for ${selectedPlayer} (${teams[selectedTeam].name}) at ${formatTime(time)}`, {
-        autoClose: 2000
-      });
+      success(`Recorded: ${statType} for ${selectedPlayer} (${teams[selectedTeam].name}) at ${formatTime(time)}`);
       
-    } catch (error) {
-      console.error('Error recording stat:', error);
-      toast.error('Error recording stat. Please try again.');
+    } catch (err) {
+      console.error('Error recording stat:', err);
+      warning('Error recording stat. Please try again.');
     }
   };
   
   const saveStatsToLocalStorage = (statsData) => {
     try {
       localStorage.setItem(`stats-${videoId}`, JSON.stringify(statsData));
-    } catch (error) {
-      console.error('Error saving stats to local storage:', error);
+    } catch (err) {
+      console.error('Error saving stats to local storage:', err);
     }
   };
 
@@ -346,8 +345,8 @@ const Youtube = ({ setCurrentPage }) => {
       if (savedStats) {
         setStats(JSON.parse(savedStats));
       }
-    } catch (error) {
-      console.error('Error loading stats from local storage:', error);
+    } catch (err) {
+      console.error('Error loading stats from local storage:', err);
     }
   };
   
@@ -371,7 +370,7 @@ const Youtube = ({ setCurrentPage }) => {
         
         if (!playerContainer) {
           console.error('Player container not found after videoId change!');
-          toast.error('Error loading player. Please try reloading the page.');
+          warning('Error loading player. Please try reloading the page.');
           return;
         }
         
@@ -415,13 +414,13 @@ const Youtube = ({ setCurrentPage }) => {
   
   const handleAddPlayer = () => {
     if (!newPlayerName.trim()) {
-      toast.error('Please enter a player name');
+      warning('Please enter a player name');
       return;
     }
     
     // Check if player already exists in the team
     if (teams[selectedTeam].players.includes(newPlayerName.trim())) {
-      toast.error('This player already exists in the team');
+      warning('This player already exists in the team');
       return;
     }
     
@@ -436,19 +435,19 @@ const Youtube = ({ setCurrentPage }) => {
     // Auto-select the newly added player
     setSelectedPlayer(newPlayerName.trim());
     setNewPlayerName('');
-    toast.success(`Added ${newPlayerName.trim()} to ${teams[selectedTeam].name}`);
+    success(`Added ${newPlayerName.trim()} to ${teams[selectedTeam].name}`);
   };
   
   const selectPlayerDirectly = (playerName) => {
     setSelectedPlayer(playerName);
-    toast.info(`Selected ${playerName}`);
+    info(`Selected ${playerName}`);
   };
   
   const removePlayer = (playerName) => {
     // Don't allow removing a player if they have stats
     const playerHasStats = stats.some(stat => stat.player === playerName);
     if (playerHasStats) {
-      toast.error(`Cannot remove ${playerName} - they have recorded stats`);
+      warning(`Cannot remove ${playerName} - they have recorded stats`);
       return;
     }
     
@@ -465,22 +464,22 @@ const Youtube = ({ setCurrentPage }) => {
       setSelectedPlayer('');
     }
     
-    toast.success(`Removed ${playerName} from ${teams[selectedTeam].name}`);
+    success(`Removed ${playerName} from ${teams[selectedTeam].name}`);
   };
   
   const saveGameToDatabase = async () => {
     if (!currentUser) {
-      toast.error('Please log in to save games');
+      warning('Please log in to save games');
       return;
     }
     
     if (!gameTitle.trim()) {
-      toast.error('Please enter a title for this game');
+      warning('Please enter a title for this game');
       return;
     }
     
     if (stats.length === 0) {
-      toast.error('No stats recorded yet. Record some stats before saving.');
+      warning('No stats recorded yet. Record some stats before saving.');
       return;
     }
     
@@ -529,10 +528,10 @@ const Youtube = ({ setCurrentPage }) => {
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 3000);
       
-      toast.success('Game saved successfully!');
-    } catch (error) {
-      console.error('Error saving game:', error);
-      toast.error(`Failed to save game: ${error.message}`);
+      success('Game saved successfully!');
+    } catch (err) {
+      console.error('Error saving game:', err);
+      warning(`Failed to save game: ${err.message}`);
     } finally {
       setSavingToDb(false);
     }
@@ -664,7 +663,7 @@ const Youtube = ({ setCurrentPage }) => {
   const undoLastStat = () => {
     setStats(prevStats => {
       if (prevStats.length === 0) {
-        toast.info("No stats to undo");
+        warning("No stats to undo");
         return prevStats;
       }
       
@@ -678,7 +677,7 @@ const Youtube = ({ setCurrentPage }) => {
       // Save to local storage
       saveStatsToLocalStorage(updatedStats);
       
-      toast.success(`Undone: ${statDescription}`);
+      success(`Undone: ${statDescription}`);
       return updatedStats;
     });
   };
@@ -698,7 +697,7 @@ const Youtube = ({ setCurrentPage }) => {
         // Save to local storage
         saveStatsToLocalStorage(updatedStats);
         
-        toast.success("Stat deleted");
+        success("Stat deleted");
         return updatedStats;
       });
     }
@@ -709,7 +708,7 @@ const Youtube = ({ setCurrentPage }) => {
     if (window.confirm("Are you sure you want to clear all stats? This cannot be undone.")) {
       setStats([]);
       localStorage.removeItem(`stats-${videoId}`);
-      toast.info("All stats have been cleared");
+      success("All stats have been cleared");
     }
   };
 
@@ -821,8 +820,8 @@ const Youtube = ({ setCurrentPage }) => {
                               return player.getDuration() || 600;
                             }
                             return 600; // Default fallback of 10 minutes
-                          } catch (e) {
-                            console.log("Couldn't get video duration yet:", e);
+                          } catch (err) {
+                            console.log("Couldn't get video duration yet:", err);
                             return 600;
                           }
                         })();
@@ -848,7 +847,7 @@ const Youtube = ({ setCurrentPage }) => {
                       <span>{formatTime((() => {
                         try {
                           return player && player.getPlayerState !== undefined ? player.getDuration() : 0;
-                        } catch (e) {
+                        } catch (err) {
                           return 0;
                         }
                       })())}</span>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { useNotification } from './contexts/NotificationContext';
 import { useAuth } from './contexts/AuthContext';
 import { STATS_ENDPOINTS, STATS_V2_ENDPOINTS, SEASON_ENDPOINTS, createApiHeaders, APP_URL } from './config/apiConfig';
 
@@ -16,6 +16,7 @@ const SavedGames = ({ setCurrentPage }) => {
   const [selectedGames, setSelectedGames] = useState([]);
   const [seasons, setSeasons] = useState([]);
   const [selectedSeason, setSelectedSeason] = useState(null);
+  const { success, error: showError, warning, info } = useNotification();
 
   // Demo games data with the provided players and YouTube link
   const demoGames = [
@@ -209,7 +210,7 @@ const SavedGames = ({ setCurrentPage }) => {
         setGames(savedGames);
       } catch (error) {
         console.error('Error fetching saved games:', error);
-        toast.error(`Failed to load saved games: ${error.message}`);
+        showError('Failed to load saved games: ' + error.message);
         // Set demo games if there's an error fetching from API
         setGames(demoGames);
       } finally {
@@ -237,7 +238,7 @@ const SavedGames = ({ setCurrentPage }) => {
         setSeasons(seasonsData);
       } catch (error) {
         console.error('Error fetching seasons:', error);
-        toast.error('Failed to load seasons');
+        showError('Failed to load seasons');
       }
     };
     
@@ -397,11 +398,11 @@ const SavedGames = ({ setCurrentPage }) => {
       localStorage.setItem('continue-game', JSON.stringify(gameData));
       
       // Navigate to the YouTube component
-      toast.info(`Opening video: ${game.title}`);
+      info(`Opening video: ${game.title}`);
       setCurrentPage('youtube');
     } catch (error) {
       console.error('Error preparing to continue game:', error);
-      toast.error('Failed to load game. Please try again.');
+      showError('Failed to load game. Please try again.');
     }
   };
 
@@ -422,10 +423,10 @@ const SavedGames = ({ setCurrentPage }) => {
         }
         
         setGames(prevGames => prevGames.filter(g => g.id !== game.id));
-        toast.success('Game deleted successfully');
+        success('Game deleted successfully');
       } catch (error) {
         console.error('Error deleting game:', error);
-        toast.error(`Failed to delete game: ${error.message}`);
+        showError(`Failed to delete game: ${error.message}`);
       }
     }
   };
@@ -493,7 +494,7 @@ const SavedGames = ({ setCurrentPage }) => {
       if (shareUrls[game.videoId]) {
         // Copy existing share URL to clipboard
         await navigator.clipboard.writeText(shareUrls[game.videoId]);
-        toast.success('Share link copied to clipboard!');
+        success('Share link copied to clipboard!');
         return;
       }
       
@@ -518,10 +519,10 @@ const SavedGames = ({ setCurrentPage }) => {
       
       // Copy to clipboard
       await navigator.clipboard.writeText(result.shareUrl);
-      toast.success('Share link copied to clipboard!');
+      success('Share link copied to clipboard!');
     } catch (error) {
       console.error('Error sharing game:', error);
-      toast.error(error.message || 'Failed to share game');
+      showError(error.message || 'Failed to share game');
     } finally {
       setSharingGame(null);
     }
@@ -550,12 +551,12 @@ const SavedGames = ({ setCurrentPage }) => {
   // Update the function to create a season via API
   const createSeasonFromSelection = async () => {
     if (selectedGames.length === 0) {
-      toast.warning('Please select at least one game to create a season');
+      warning('Please select at least one game to create a season');
       return;
     }
     
     if (!currentUser) {
-      toast.warning('Please sign in to create a season');
+      warning('Please sign in to create a season');
       setCurrentPage('login');
       return;
     }
@@ -592,7 +593,7 @@ const SavedGames = ({ setCurrentPage }) => {
       const updatedSeasons = await seasonsResponse.json();
       setSeasons(updatedSeasons);
       
-      toast.success(`Created "${seasonName}" with ${selectedGames.length} games`);
+      success(`Created "${seasonName}" with ${selectedGames.length} games`);
       
       // Exit multi-select mode
       setMultiSelectMode(false);
@@ -602,7 +603,7 @@ const SavedGames = ({ setCurrentPage }) => {
       setCurrentPage('season-stats');
     } catch (error) {
       console.error('Error creating season:', error);
-      toast.error('Failed to create season: ' + error.message);
+      showError('Failed to create season: ' + error.message);
     }
   };
 
@@ -962,7 +963,7 @@ const SavedGames = ({ setCurrentPage }) => {
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 await navigator.clipboard.writeText(shareUrls[game.videoId]);
-                                toast.success('Link copied!');
+                                success('Link copied!');
                               }}
                             >
                               Copy

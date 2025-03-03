@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { useNotification } from './contexts/NotificationContext';
 import { useAuth } from './contexts/AuthContext';
 import { formatDate } from './utils/dateUtils';
 import { SEASON_ENDPOINTS, STATS_V2_ENDPOINTS, createApiHeaders } from './config/apiConfig';
 
 const SeasonStats = ({ setCurrentPage }) => {
   const { currentUser } = useAuth();
+  const { success, error: showError, warning, info } = useNotification();
   const [seasons, setSeasons] = useState([]);
   const [selectedSeasonId, setSelectedSeasonId] = useState(null);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -39,9 +40,9 @@ const SeasonStats = ({ setCurrentPage }) => {
           // Select the most recent season by default
           setSelectedSeasonId(seasonsData[0]._id); // Using MongoDB _id
         }
-      } catch (error) {
-        console.error('Error fetching seasons:', error);
-        toast.error('Failed to load seasons');
+      } catch (err) {
+        console.error('Error fetching seasons:', err);
+        showError('Failed to load seasons');
       } finally {
         setLoading(false);
       }
@@ -91,9 +92,9 @@ const SeasonStats = ({ setCurrentPage }) => {
         } else {
           setSeasonGames([]);
         }
-      } catch (error) {
-        console.error('Error fetching season games:', error);
-        toast.error('Failed to load season games');
+      } catch (err) {
+        console.error('Error fetching season games:', err);
+        showError('Failed to load season games');
         setSeasonGames([]);
       } finally {
         setLoadingGames(false);
@@ -113,12 +114,12 @@ const SeasonStats = ({ setCurrentPage }) => {
   // Save the edited season name
   const saveSeasonName = async () => {
     if (!currentUser) {
-      toast.warning('Please sign in to edit seasons');
+      info('Please sign in to edit seasons');
       return;
     }
     
     if (!newSeasonName.trim()) {
-      toast.error('Season name cannot be empty');
+      info('Season name cannot be empty');
       return;
     }
 
@@ -143,17 +144,17 @@ const SeasonStats = ({ setCurrentPage }) => {
       
       setSeasons(updatedSeasons);
       setIsEditingName(false);
-      toast.success('Season name updated');
-    } catch (error) {
-      console.error('Error updating season:', error);
-      toast.error('Failed to update season: ' + error.message);
+      success('Season name updated');
+    } catch (err) {
+      console.error('Error updating season:', err);
+      showError('Failed to update season: ' + err.message);
     }
   };
 
   // Delete a season
   const deleteSeason = async (seasonId) => {
     if (!currentUser) {
-      toast.warning('Please sign in to delete seasons');
+      info('Please sign in to delete seasons');
       return;
     }
     
@@ -181,10 +182,10 @@ const SeasonStats = ({ setCurrentPage }) => {
         setSelectedSeasonId(updatedSeasons.length > 0 ? updatedSeasons[0]._id : null);
       }
       
-      toast.success('Season deleted');
-    } catch (error) {
-      console.error('Error deleting season:', error);
-      toast.error('Failed to delete season: ' + error.message);
+      success('Season deleted');
+    } catch (err) {
+      console.error('Error deleting season:', err);
+      showError('Failed to delete season: ' + err.message);
     }
   };
 

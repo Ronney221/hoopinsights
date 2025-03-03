@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+import { useNotification } from './contexts/NotificationContext';
 import { useAuth } from './contexts/AuthContext';
 import { STATS_ENDPOINTS, STATS_V2_ENDPOINTS, createApiHeaders } from './config/apiConfig';
 
@@ -11,6 +11,7 @@ const SharedGame = ({ shareId, setCurrentPage }) => {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [saving, setSaving] = useState(false);
   const [expandedSection, setExpandedSection] = useState('stats'); // 'stats' or 'timeline'
+  const { success, error: notificationError, warning, info } = useNotification();
 
   useEffect(() => {
     const fetchSharedGame = async () => {
@@ -28,7 +29,7 @@ const SharedGame = ({ shareId, setCurrentPage }) => {
       } catch (err) {
         console.error('Error fetching shared game:', err);
         setError(err.message || 'Failed to load this shared game');
-        toast.error(err.message || 'Failed to load shared game');
+        notificationError(err.message || 'Failed to load shared game');
       } finally {
         setLoading(false);
       }
@@ -41,7 +42,7 @@ const SharedGame = ({ shareId, setCurrentPage }) => {
 
   const handleSaveToMyAccount = async () => {
     if (!currentUser) {
-      toast.info('Please sign in to save this game to your account');
+      info('Please sign in to save this game to your account');
       setCurrentPage('login');
       return;
     }
@@ -59,13 +60,13 @@ const SharedGame = ({ shareId, setCurrentPage }) => {
       }
 
       const result = await response.json();
-      toast.success(result.message || 'Game saved to your account successfully!');
+      success(result.message || 'Game saved to your account successfully!');
       
       // Optional: Redirect to the saved games page
       setCurrentPage('saved-games');
     } catch (err) {
       console.error('Error saving shared game:', err);
-      toast.error(err.message || 'Failed to save game to your account');
+      notificationError(err.message || 'Failed to save game to your account');
     } finally {
       setSaving(false);
     }
@@ -196,8 +197,8 @@ const SharedGame = ({ shareId, setCurrentPage }) => {
   const copyShareLink = () => {
     const shareUrl = `${window.location.origin}/shared/${shareId}`;
     navigator.clipboard.writeText(shareUrl)
-      .then(() => toast.success('Share link copied to clipboard!'))
-      .catch(() => toast.error('Failed to copy link'));
+      .then(() => success('Share link copied to clipboard!'))
+      .catch(() => notificationError('Failed to copy link'));
   };
 
   if (loading) {
