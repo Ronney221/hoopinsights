@@ -1,41 +1,140 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNotification } from './contexts/NotificationContext';
 import { useAuth } from './contexts/AuthContext';
 import { STATS_ENDPOINTS, STATS_V2_ENDPOINTS, createApiHeaders } from './config/apiConfig';
 
-const Shotify = ({ setCurrentPage }) => {
+const Shotify = ({ setCurrentPage, sharedGame = null }) => {
   const { currentUser } = useAuth();
+  const { success, error: showError, info } = useNotification();
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [expandedSection, setExpandedSection] = useState('stats'); // 'stats' or 'timeline' or 'fullStats'
-  const { success, error: notificationError, warning, info } = useNotification();
+  const [shareUrl, setShareUrl] = useState('');
+  const [sortBy, setSortBy] = useState('points');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [selectedTeam, setSelectedTeam] = useState('all');
+  const [selectedPlayer, setSelectedPlayer] = useState('all');
+  const [selectedStat, setSelectedStat] = useState('all');
+  const [timelineData, setTimelineData] = useState([]);
+  const [hasLoadedData, setHasLoadedData] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [expandedSection, setExpandedSection] = useState('stats');
+  const loadAttemptRef = useRef(false);
+
+  const loadGameData = () => {
+    try {
+      // If we have a shared game, use that instead of localStorage
+      if (sharedGame) {
+        if (!sharedGame.videoId || !sharedGame.teams || !sharedGame.stats) {
+          throw new Error('Invalid shared game data format');
+        }
+        return sharedGame;
+      }
+
+      // Otherwise try to load from localStorage
+      const rawGameData = localStorage.getItem('analyze-game');
+      
+      if (!rawGameData) {
+        throw new Error('No game data found to analyze');
+      }
+
+      const gameData = JSON.parse(rawGameData);
+      
+      if (!gameData.videoId || !gameData.teams || !gameData.stats) {
+        throw new Error('Invalid game data format');
+      }
+
+      return gameData;
+    } catch (error) {
+      throw error;
+    }
+  };
 
   useEffect(() => {
-    const loadGameData = () => {
+    const loadSavedGame = async () => {
+      // If we've already attempted to load, don't try again
+      if (loadAttemptRef.current) {
+        return;
+      }
+      
+      loadAttemptRef.current = true;
+      setLoading(true);
+
       try {
-        setLoading(true);
-        const gameData = JSON.parse(localStorage.getItem('hoopinsights-game'));
-        
-        if (!gameData) {
-          throw new Error('No game data found');
-        }
-        
+        const gameData = loadGameData();
         setGame(gameData);
-      } catch (err) {
-        console.error('Error loading game data:', err);
-        setError(err.message || 'Failed to load game data');
-        notificationError(err.message || 'Failed to load game data');
-      } finally {
+        setLoading(false);
+        
+        // Mark that we've loaded the data
+        setHasLoadedData(true);
+
+        // Only clear localStorage after a delay and if we still have the same data
+        const timeoutId = setTimeout(() => {
+          const currentData = localStorage.getItem('analyze-game');
+          if (currentData === JSON.stringify(gameData)) {
+            localStorage.removeItem('analyze-game');
+          }
+        }, 2000); // Increased delay to 2 seconds
+
+        // Cleanup timeout if component unmounts
+        return () => clearTimeout(timeoutId);
+      } catch (error) {
+        if (!hasLoadedData) {
+          console.error('Error loading game data:', error);
+          setError(error.message);
+          showError(error.message);
+          setCurrentPage('saved-games');
+        }
         setLoading(false);
       }
     };
 
-    loadGameData();
-  }, []);
+    loadSavedGame();
+  }, [setCurrentPage, showError, hasLoadedData]);
+
+  // Copy share link to clipboard
+  const copyShareLink = async () => {
+    try {
+      if (!game.shareId) {
+        // Get authentication headers
+        const headers = await createApiHeaders(currentUser);
+        
+        // If no shareId exists, create one by saving the game first
+        const response = await fetch(STATS_V2_ENDPOINTS.SHARE_GAME(game.videoId), {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            game: {
+              ...game,
+              createdAt: new Date().toISOString(),
+              userId: currentUser?.uid || 'anonymous'
+            }
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to generate share link');
+        }
+
+        const result = await response.json();
+        const shareUrl = `${window.location.origin}/shared/${result.shareId}`;
+        await navigator.clipboard.writeText(shareUrl);
+        success('Share link copied to clipboard!');
+        setShareUrl(shareUrl);
+      } else {
+        // If shareId exists, use it
+        const shareUrl = `${window.location.origin}/shared/${game.shareId}`;
+        await navigator.clipboard.writeText(shareUrl);
+        success('Share link copied to clipboard!');
+        setShareUrl(shareUrl);
+      }
+    } catch (error) {
+      console.error('Share link error:', error);
+      showError('Failed to copy share link: ' + error.message);
+    }
+  };
 
   const handleSaveToMyAccount = async () => {
     if (!currentUser) {
@@ -47,45 +146,70 @@ const Shotify = ({ setCurrentPage }) => {
     try {
       setSaving(true);
       
-      // Prepare the game data with all required fields
+      // Get authentication headers
+      const headers = await createApiHeaders(currentUser);
+      
+      // If this is a shared game, use the saveSharedGame endpoint
+      if (game.shareId) {
+        const response = await fetch(STATS_V2_ENDPOINTS.SAVE_SHARED_GAME(game.shareId), {
+          method: 'POST',
+          headers
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to save shared game');
+        }
+
+        const result = await response.json();
+        success('Game saved successfully to your account!');
+        setCurrentPage('saved-games');
+        return;
+      }
+
+      // Otherwise, proceed with normal game saving logic
       const gameData = {
         ...game,
         userId: currentUser.uid,
         savedAt: new Date().toISOString(),
-        internalId: game.videoId || game.internalId,
-        youtubeId: game.videoId || game.youtubeId,
         videoId: game.videoId,
         videoUrl: `https://www.youtube.com/watch?v=${game.videoId}`,
-        teams: game.teams || {
-          team1: { name: 'Team 1', players: [] },
-          team2: { name: 'Team 2', players: [] }
+        teams: {
+          team1: {
+            name: game.teams.team1.name,
+            players: game.teams.team1.players
+          },
+          team2: {
+            name: game.teams.team2.name,
+            players: game.teams.team2.players
+          }
         },
         stats: game.stats || [],
         title: game.title || 'Basketball Game'
       };
 
-      // Log the request data for debugging
-      console.log('Saving game data:', gameData);
-
-      const response = await fetch(`${STATS_V2_ENDPOINTS.BASE_URL}/saveSharedGame/${game.shareId}`, {
+      const response = await fetch(STATS_V2_ENDPOINTS.SAVE_GAME, {
         method: 'POST',
-        headers: await createApiHeaders(currentUser),
-        body: JSON.stringify({ game: gameData })
+        headers,
+        body: JSON.stringify(gameData)
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save game to your account');
+        throw new Error(errorData.message || 'Failed to save game');
       }
 
       const result = await response.json();
-      success(result.message || 'Game saved to your account successfully!');
+      success('Game saved successfully!');
       
-      // Redirect to the saved games page
+      // Clear the game data from localStorage after successful save
+      localStorage.removeItem('analyze-game');
+      
+      // Redirect to saved games
       setCurrentPage('saved-games');
     } catch (err) {
-      console.error('Error saving shared game:', err);
-      notificationError(err.message || 'Failed to save game to your account');
+      console.error('Save game error:', err);
+      showError(err.message);
     } finally {
       setSaving(false);
     }
@@ -212,87 +336,39 @@ const Shotify = ({ setCurrentPage }) => {
     return allPlayers;
   };
 
-  // Copy share link to clipboard
-  const copyShareLink = () => {
-    const shareUrl = `${window.location.origin}/shared/${game.shareId}`;
-    navigator.clipboard.writeText(shareUrl)
-      .then(() => success('Share link copied to clipboard!'))
-      .catch(() => notificationError('Failed to copy link'));
-  };
-
   // Add this function after getPlayerStats
   const getTeamStats = (teamId) => {
     if (!game || !game.stats) return null;
     
-    const teamStats = {
-      points: 0,
-      fgMade: 0,
-      fgAttempts: 0,
-      threePtMade: 0,
-      threePtAttempts: 0,
-      ftMade: 0,
-      ftAttempts: 0,
-      rebounds: 0,
-      assists: 0,
-      steals: 0,
-      blocks: 0,
-      turnovers: 0,
-      fouls: 0
+    const teamStats = game.stats.filter(stat => stat.team === teamId);
+    const totalPoints = teamStats.reduce((sum, stat) => {
+      if (stat.type === 'FG Made') return sum + 2;
+      if (stat.type === '3PT Made') return sum + 3;
+      if (stat.type === 'FT Made') return sum + 1;
+      return sum;
+    }, 0);
+
+    const fgAttempts = teamStats.filter(stat => stat.type === 'FG Made' || stat.type === 'FG Missed').length;
+    const fgMade = teamStats.filter(stat => stat.type === 'FG Made').length;
+    const threePtAttempts = teamStats.filter(stat => stat.type === '3PT Made' || stat.type === '3PT Missed').length;
+    const threePtMade = teamStats.filter(stat => stat.type === '3PT Made').length;
+    const ftAttempts = teamStats.filter(stat => stat.type === 'FT Made' || stat.type === 'FT Missed').length;
+    const ftMade = teamStats.filter(stat => stat.type === 'FT Made').length;
+
+    return {
+      points: totalPoints,
+      fgMade,
+      fgAttempts,
+      threePtMade,
+      threePtAttempts,
+      ftMade,
+      ftAttempts,
+      rebounds: teamStats.filter(stat => stat.type === 'Rebound').length,
+      assists: teamStats.filter(stat => stat.type === 'Assist').length,
+      steals: teamStats.filter(stat => stat.type === 'Steal').length,
+      blocks: teamStats.filter(stat => stat.type === 'Block').length,
+      turnovers: teamStats.filter(stat => stat.type === 'Turnover').length
     };
-    
-    game.stats.forEach(stat => {
-      if (stat.team === teamId) {
-        switch(stat.type) {
-          case 'FG Made':
-            teamStats.points += 2;
-            teamStats.fgMade += 1;
-            teamStats.fgAttempts += 1;
-            break;
-          case 'FG Missed':
-            teamStats.fgAttempts += 1;
-            break;
-          case '3PT Made':
-            teamStats.points += 3;
-            teamStats.threePtMade += 1;
-            teamStats.threePtAttempts += 1;
-            teamStats.fgMade += 1;
-            teamStats.fgAttempts += 1;
-            break;
-          case '3PT Missed':
-            teamStats.threePtAttempts += 1;
-            teamStats.fgAttempts += 1;
-            break;
-          case 'FT Made':
-            teamStats.points += 1;
-            teamStats.ftMade += 1;
-            teamStats.ftAttempts += 1;
-            break;
-          case 'FT Missed':
-            teamStats.ftAttempts += 1;
-            break;
-          case 'Rebound':
-            teamStats.rebounds += 1;
-            break;
-          case 'Assist':
-            teamStats.assists += 1;
-            break;
-          case 'Steal':
-            teamStats.steals += 1;
-            break;
-          case 'Block':
-            teamStats.blocks += 1;
-            break;
-          case 'Turnover':
-            teamStats.turnovers += 1;
-            break;
-          case 'Foul':
-            teamStats.fouls += 1;
-            break;
-        }
-      }
-    });
-    
-    return teamStats;
   };
 
   const exportToCSV = () => {
@@ -1610,7 +1686,7 @@ const Shotify = ({ setCurrentPage }) => {
             {/* Team Comparison */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               {['team1', 'team2'].map((teamId) => {
-                const stats = getTeamStats(teamId);
+                const teamStats = getTeamStats(teamId);
                 const teamName = game.teams[teamId].name;
                 const isTeam1 = teamId === 'team1';
                 
@@ -1624,47 +1700,47 @@ const Shotify = ({ setCurrentPage }) => {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
                         <div className="stat bg-base-200/50 p-3 rounded-box">
                           <div className="stat-title text-xs">Points</div>
-                          <div className="stat-value text-2xl">{stats.points}</div>
+                          <div className="stat-value text-2xl">{teamStats.points}</div>
                         </div>
                         <div className="stat bg-base-200/50 p-3 rounded-box">
                           <div className="stat-title text-xs">FG%</div>
                           <div className="stat-value text-2xl">
-                            {((stats.fgMade / stats.fgAttempts) * 100 || 0).toFixed(1)}%
+                            {teamStats.fgMade}/{teamStats.fgAttempts}
                           </div>
-                          <div className="stat-desc">{stats.fgMade}/{stats.fgAttempts}</div>
+                          <div className="stat-desc">{teamStats.fgMade}/{teamStats.fgAttempts}</div>
                         </div>
                         <div className="stat bg-base-200/50 p-3 rounded-box">
                           <div className="stat-title text-xs">3P%</div>
                           <div className="stat-value text-2xl">
-                            {((stats.threePtMade / stats.threePtAttempts) * 100 || 0).toFixed(1)}%
+                            {teamStats.threePtMade}/{teamStats.threePtAttempts}
                           </div>
-                          <div className="stat-desc">{stats.threePtMade}/{stats.threePtAttempts}</div>
+                          <div className="stat-desc">{teamStats.threePtMade}/{teamStats.threePtAttempts}</div>
                         </div>
                         <div className="stat bg-base-200/50 p-3 rounded-box">
                           <div className="stat-title text-xs">FT%</div>
                           <div className="stat-value text-2xl">
-                            {((stats.ftMade / stats.ftAttempts) * 100 || 0).toFixed(1)}%
+                            {teamStats.ftMade}/{teamStats.ftAttempts}
                           </div>
-                          <div className="stat-desc">{stats.ftMade}/{stats.ftAttempts}</div>
+                          <div className="stat-desc">{teamStats.ftMade}/{teamStats.ftAttempts}</div>
                         </div>
                       </div>
                       
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div className="stat bg-base-200/50 p-3 rounded-box">
                           <div className="stat-title text-xs">Rebounds</div>
-                          <div className="stat-value text-xl">{stats.rebounds}</div>
+                          <div className="stat-value text-xl">{teamStats.rebounds}</div>
                         </div>
                         <div className="stat bg-base-200/50 p-3 rounded-box">
                           <div className="stat-title text-xs">Assists</div>
-                          <div className="stat-value text-xl">{stats.assists}</div>
+                          <div className="stat-value text-xl">{teamStats.assists}</div>
                         </div>
                         <div className="stat bg-base-200/50 p-3 rounded-box">
                           <div className="stat-title text-xs">Steals</div>
-                          <div className="stat-value text-xl">{stats.steals}</div>
+                          <div className="stat-value text-xl">{teamStats.steals}</div>
                         </div>
                         <div className="stat bg-base-200/50 p-3 rounded-box">
                           <div className="stat-title text-xs">Blocks</div>
-                          <div className="stat-value text-xl">{stats.blocks}</div>
+                          <div className="stat-value text-xl">{teamStats.blocks}</div>
                         </div>
                       </div>
                     </div>

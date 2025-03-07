@@ -442,6 +442,48 @@ const SavedGames = ({ setCurrentPage }) => {
     }
   };
 
+  // Add this function after continueWatching
+  const analyzeGame = (game) => {
+    try {
+      // Ensure the game has all required properties
+      const gameData = {
+        videoId: game.videoId,
+        videoUrl: game.videoUrl || `https://www.youtube.com/watch?v=${game.videoId}`,
+        title: game.title || 'Basketball Game',
+        teams: game.teams || {
+          team1: { name: 'Team 1', players: [] },
+          team2: { name: 'Team 2', players: [] }
+        },
+        stats: game.stats || []
+      };
+      
+      console.log('Preparing game data for analysis:', gameData);
+      
+      // Clear any existing data first
+      localStorage.removeItem('analyze-game');
+      
+      // Store the new game data
+      localStorage.setItem('analyze-game', JSON.stringify(gameData));
+      
+      // Verify the data was stored correctly
+      const storedData = localStorage.getItem('analyze-game');
+      console.log('Stored game data:', storedData);
+      
+      if (!storedData) {
+        throw new Error('Failed to store game data');
+      }
+      
+      // Only navigate after confirming data is stored
+      info(`Loading game for analysis: ${game.title}`);
+      setTimeout(() => {
+        setCurrentPage('shotify');
+      }, 100);
+    } catch (error) {
+      console.error('Error preparing game for analysis:', error);
+      showError('Failed to prepare game for analysis. Please try again.');
+    }
+  };
+
   // Handle deleting a saved game
   const deleteGame = async (game, event) => {
     if (event) {
@@ -827,19 +869,19 @@ const SavedGames = ({ setCurrentPage }) => {
           </div>
           
           <div className="card-actions justify-end mt-4 flex">
-            {/* HoopInsights Button */}
+            {/* Analyze Button */}
             <button 
-              className="btn btn-outline btn-sm flex-1"
+              className="btn btn-ghost hover:bg-primary/10 px-6 gap-2 transition-all duration-300 group relative overflow-hidden"
               onClick={(e) => {
                 e.stopPropagation();
-                setCurrentPage('shotify');
-                localStorage.setItem('shotify-game', JSON.stringify(game));
+                analyzeGame(game);
               }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
-              Analyze
+              <span className="font-medium">Analyze</span>
             </button>
             
             <button 

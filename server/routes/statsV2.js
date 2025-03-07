@@ -494,7 +494,8 @@ router.get('/shared/:shareId', async (req, res) => {
     
     console.log(`Shared game ${shareId} viewed: ${video.title}`);
     
-    res.json(sharedGame);
+    // Wrap the sharedGame in a game property
+    res.json({ game: sharedGame });
   } catch (error) {
     console.error('Error retrieving shared game:', error);
     res.status(500).json({ error: 'Failed to retrieve shared game' });

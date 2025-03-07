@@ -1010,7 +1010,7 @@ const Home = ({ setCurrentPage }) => {
 
             <div className="text-center mt-12">
               <button
-                onClick={() => handlePageChange('saved-games')}
+                onClick={() => handlePageChange('season-stats')}
                 className="btn btn-primary btn-lg group relative overflow-hidden"
               >
                 <span className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/25 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></span>

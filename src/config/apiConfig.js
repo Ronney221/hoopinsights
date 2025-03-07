@@ -10,11 +10,11 @@ const isProduction = import.meta.env.PROD || process.env.NODE_ENV === 'productio
 
 // API Base URLs
 const BASE_URL = process.env.NODE_ENV === 'development'
-  ? 'http://localhost:3001'
+  ? 'http://localhost:5000'
   : 'https://shotify.org';
 
 const API_BASE_URL = process.env.NODE_ENV === 'development'
-  ? 'http://localhost:3001/api'
+  ? 'http://localhost:5000/api'
   : 'https://shotify.org/api';
 
 // Set base URLs for app and API

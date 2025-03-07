@@ -16,6 +16,7 @@ import './App.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Shotify from './Shotify';
+import Shared from './Shared';
 
 function App() {
   const [currentPage, setCurrentPage] = useState(() => {
@@ -28,9 +29,7 @@ function App() {
     // Check if we're on a shared game page
     const path = window.location.pathname;
     if (path.startsWith('/shared/')) {
-      // Extract the shareId from the URL
-      const shareId = path.substring('/shared/'.length);
-      return `shared-${shareId}`;
+      return 'shared';
     }
     
     // Get page from URL path or fallback to home
@@ -40,11 +39,8 @@ function App() {
 
   // Update URL when page changes
   useEffect(() => {
-    if (currentPage.startsWith('shared-')) {
-      const shareId = currentPage.substring('shared-'.length);
-      window.history.pushState({}, '', `/shared/${shareId}`);
-    } else {
-      const path = currentPage === 'home' ? '/' : `/${currentPage}`;
+    const path = currentPage === 'home' ? '/' : `/${currentPage}`;
+    if (currentPage !== 'shared') { // Don't update URL for shared pages
       window.history.pushState({}, '', path);
     }
   }, [currentPage]);
@@ -56,8 +52,7 @@ function App() {
       
       // Handle shared game URLs
       if (path.startsWith('/shared/')) {
-        const shareId = path.substring('/shared/'.length);
-        setCurrentPage(`shared-${shareId}`);
+        setCurrentPage('shared');
         return;
       }
       
@@ -74,9 +69,8 @@ function App() {
   let content;
   
   // Handle shared game pages
-  if (currentPage.startsWith('shared-')) {
-    const shareId = currentPage.substring('shared-'.length);
-    content = <SharedGame shareId={shareId} setCurrentPage={setCurrentPage} />;
+  if (currentPage === 'shared') {
+    content = <Shared />;
   } else {
     // Handle regular pages
     switch (currentPage) {
@@ -85,9 +79,6 @@ function App() {
         break;
       case "register":
         content = <Register setCurrentPage={setCurrentPage} />;
-        break;
-      case "analytics":
-        content = <Analytics />;
         break;
       case "youtube":
         content = <Youtube setCurrentPage={setCurrentPage} />;

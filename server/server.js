@@ -20,8 +20,11 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: '*', // Allow all origins in production for now
-  methods: ['GET', 'POST', 'DELETE', 'UPDATE', 'PUT', 'PATCH'],
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://hoopinsights.vercel.app', 'http://localhost:5173'] // Add your production domain
+    : 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id', 'X-User-Email'],
   credentials: true
 }));
 
