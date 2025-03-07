@@ -508,7 +508,7 @@ router.post('/saveSharedGame/:shareId', authenticateUser, async (req, res) => {
     const { shareId } = req.params;
     const startTime = Date.now();
     
-    console.log(`User ${req.user.uid} saving shared game ${shareId} to their account`);
+    console.log(`[${req.user.uid}] Starting saveSharedGame request for shareId: ${shareId}`);
     
     // Find the shared video
     const sharedVideo = await VideoNew.findOne({ 
@@ -517,8 +517,16 @@ router.post('/saveSharedGame/:shareId', authenticateUser, async (req, res) => {
     }).lean();
     
     if (!sharedVideo) {
+      console.error(`[${req.user.uid}] Shared game not found with shareId: ${shareId}`);
       return res.status(404).json({ error: 'Shared game not found' });
     }
+    
+    console.log(`[${req.user.uid}] Found shared video:`, {
+      originalYoutubeId: sharedVideo.originalYoutubeId,
+      title: sharedVideo.title,
+      createdBy: sharedVideo.createdBy,
+      internalId: sharedVideo.internalId
+    });
     
     // Check if the user already has this game
     const existingVideo = await VideoNew.findOne({
@@ -527,6 +535,10 @@ router.post('/saveSharedGame/:shareId', authenticateUser, async (req, res) => {
     });
     
     if (existingVideo) {
+      console.log(`[${req.user.uid}] User already has this game saved:`, {
+        videoId: existingVideo.originalYoutubeId,
+        title: existingVideo.title
+      });
       return res.status(409).json({ 
         error: 'You already have this game saved',
         videoId: existingVideo.originalYoutubeId
@@ -539,26 +551,42 @@ router.post('/saveSharedGame/:shareId', authenticateUser, async (req, res) => {
       createdBy: sharedVideo.createdBy
     }).lean();
     
-    // Create a new video for the current user
+    console.log(`[${req.user.uid}] Found ${sharedStats.length} stats to copy`);
+    
+    // Create a new video for the current user with all required fields
+    const userSpecificYoutubeId = `${sharedVideo.originalYoutubeId}__${req.user.uid}`;
+    const shortRandom = require('crypto').randomBytes(4).toString('hex');
+    const generatedInternalId = `vid_${req.user.uid}_${sharedVideo.originalYoutubeId}_${shortRandom}`;
+    
     const newVideo = new VideoNew({
       originalYoutubeId: sharedVideo.originalYoutubeId,
-      // youtubeId will be auto-generated in pre-save hook
+      youtubeId: userSpecificYoutubeId,
+      internalId: generatedInternalId,
       title: `${sharedVideo.title} (Copy)`,
-      teams: sharedVideo.teams,
+      teams: sharedVideo.teams || {
+        team1: { name: 'Team 1', players: [] },
+        team2: { name: 'Team 2', players: [] }
+      },
       totalStats: sharedStats.length,
       createdBy: req.user.uid,
-      // Don't copy the shareId - this copy isn't shared by default
+      createdAt: new Date(),
+      updatedAt: new Date()
     });
     
-    await newVideo.save();
-    console.log(`Created new video for user ${req.user.uid}: ${newVideo.title} with internalId: ${newVideo.internalId}`);
+    try {
+      await newVideo.save();
+      console.log(`[${req.user.uid}] Created new video with internalId: ${newVideo.internalId}`);
+    } catch (saveError) {
+      console.error(`[${req.user.uid}] Error saving new video:`, saveError);
+      throw new Error(`Failed to save new video: ${saveError.message}`);
+    }
     
     // Copy all stats to the new user's account
     if (sharedStats.length > 0) {
       const statsToInsert = sharedStats.map(stat => ({
-        videoId: newVideo.internalId, // Use the new video's internal ID
+        videoId: newVideo.internalId,
         type: stat.type,
-        value: stat.value,
+        value: stat.value || 1,
         player: stat.player,
         team: stat.team,
         timestamp: stat.timestamp,
@@ -570,27 +598,34 @@ router.post('/saveSharedGame/:shareId', authenticateUser, async (req, res) => {
       const BATCH_SIZE = 100;
       let savedCount = 0;
       
-      for (let i = 0; i < statsToInsert.length; i += BATCH_SIZE) {
-        const batch = statsToInsert.slice(i, i + BATCH_SIZE);
-        await StatNew.insertMany(batch);
-        savedCount += batch.length;
-        console.log(`Saved batch of ${batch.length} stats (${savedCount}/${statsToInsert.length})`);
+      try {
+        for (let i = 0; i < statsToInsert.length; i += BATCH_SIZE) {
+          const batch = statsToInsert.slice(i, i + BATCH_SIZE);
+          await StatNew.insertMany(batch);
+          savedCount += batch.length;
+          console.log(`[${req.user.uid}] Saved batch of ${batch.length} stats (${savedCount}/${statsToInsert.length})`);
+        }
+      } catch (statsError) {
+        console.error(`[${req.user.uid}] Error saving stats:`, statsError);
+        // If stats fail to save, clean up the video
+        await VideoNew.findByIdAndDelete(newVideo._id);
+        throw new Error(`Failed to save stats: ${statsError.message}`);
       }
     }
     
     const duration = Date.now() - startTime;
-    console.log(`Completed saving shared game to user account in ${duration}ms`);
+    console.log(`[${req.user.uid}] Completed saving shared game to user account in ${duration}ms`);
     
     res.status(201).json({
       message: 'Game saved successfully to your account',
-      videoId: sharedVideo.originalYoutubeId, // Return original YouTube ID
+      videoId: sharedVideo.originalYoutubeId,
       internalId: newVideo.internalId,
       title: newVideo.title,
       statsCount: sharedStats.length
     });
   } catch (error) {
-    console.error('Error saving shared game:', error);
-    res.status(500).json({ error: 'Failed to save shared game' });
+    console.error(`[${req.user.uid}] Error in saveSharedGame:`, error);
+    res.status(500).json({ error: error.message || 'Failed to save shared game' });
   }
 });
 

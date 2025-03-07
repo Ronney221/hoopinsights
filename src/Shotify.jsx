@@ -151,14 +151,32 @@ const Shotify = ({ setCurrentPage, sharedGame = null }) => {
       
       // If this is a shared game, use the saveSharedGame endpoint
       if (game.shareId) {
+        console.log('Saving shared game with ID:', game.shareId);
+        console.log('Using endpoint:', STATS_V2_ENDPOINTS.SAVE_SHARED_GAME(game.shareId));
+        
         const response = await fetch(STATS_V2_ENDPOINTS.SAVE_SHARED_GAME(game.shareId), {
           method: 'POST',
-          headers
+          headers,
+          body: JSON.stringify({
+            shareId: game.shareId,
+            videoId: game.videoId,
+            title: game.title
+          })
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to save shared game');
+          const errorText = await response.text();
+          console.error('Error response:', errorText);
+          
+          let errorMessage;
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.error || errorData.message || 'Failed to save shared game';
+          } catch (e) {
+            errorMessage = errorText || 'Failed to save shared game';
+          }
+          
+          throw new Error(errorMessage);
         }
 
         const result = await response.json();
@@ -195,8 +213,18 @@ const Shotify = ({ setCurrentPage, sharedGame = null }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save game');
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        
+        let errorMessage;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorData.message || 'Failed to save game';
+        } catch (e) {
+          errorMessage = errorText || 'Failed to save game';
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
