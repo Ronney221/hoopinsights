@@ -18,6 +18,8 @@ const SavedGames = ({ setCurrentPage }) => {
   const [selectedSeason, setSelectedSeason] = useState(null);
   const { success, error: showError, warning, info } = useNotification();
   const hasShownDemoNotice = useRef(false);
+  const [isSeasonModalOpen, setIsSeasonModalOpen] = useState(false);
+  const [newSeasonName, setNewSeasonName] = useState('');
 
   // Demo games data with the provided players and YouTube link
   const demoGames = [
@@ -690,42 +692,29 @@ const SavedGames = ({ setCurrentPage }) => {
   };
   
   // Update the function to create a season via API
-  const createSeasonFromSelection = async () => {
-    // Check if any games are selected
+  const createSeasonFromSelection = async (seasonName) => {
     if (selectedGames.length === 0) {
       warning('Please select at least one game to create a season.');
       return;
     }
 
-    // Get the filtered list of selected games, excluding demo games
     const selectedGamesList = getFilteredGames()
       .filter(game => selectedGames.includes(game.videoId))
-      .filter(game => !game.isDemo); // Filter out demo games
-    
-    // Warn the user if they selected demo games that will be excluded
+      .filter(game => !game.isDemo);
+
     const selectedDemoGamesCount = selectedGames.length - selectedGamesList.length;
     if (selectedDemoGamesCount > 0) {
       info(`${selectedDemoGamesCount} demo game(s) will not be included in your season.`);
     }
-    
-    // Make sure we still have games after filtering out demos
+
     if (selectedGamesList.length === 0) {
       warning('No valid games selected. Demo games cannot be added to seasons.');
       return;
     }
 
-    // Extract just the IDs of the selected games for saving
-    const realGameIds = selectedGamesList.map(game => game._id || game.videoId);
-
     try {
-      // Ask for season name
-      const seasonName = prompt('Enter a name for this season:', `Season ${new Date().toLocaleDateString()}`);
-      // Allow user to cancel
-      if (!seasonName) {
-        return;
-      }
+      const realGameIds = selectedGamesList.map(game => game._id || game.videoId);
 
-      // Create season via API
       const response = await fetch(SEASON_ENDPOINTS.CREATE_SEASON, {
         method: 'POST',
         headers: await createApiHeaders(currentUser),
@@ -741,18 +730,45 @@ const SavedGames = ({ setCurrentPage }) => {
       }
 
       const result = await response.json();
-      
-      // Update local seasons list
       setSeasons(prev => [...prev, result]);
-      
-      // Reset selection state
       setSelectedGames([]);
       setMultiSelectMode(false);
       
-      success(`Season "${seasonName}" created successfully with ${realGameIds.length} games.`);
-      
-      // Redirect to season stats
-      setCurrentPage('season-stats');
+      // Show success modal with navigation options
+      const modal = document.createElement('dialog');
+      modal.className = 'modal modal-bottom sm:modal-middle';
+      modal.innerHTML = `
+        <div class="modal-box bg-base-100">
+          <h3 class="font-bold text-2xl mb-2">Season Created! 🎉</h3>
+          <p class="text-sm opacity-70 mb-6">Your season "${seasonName}" has been created successfully with ${realGameIds.length} games.</p>
+          <div class="flex flex-col gap-3">
+            <button onclick="window.seasonCreatedAction('view')" class="btn btn-primary gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              View Season Stats
+            </button>
+            <button onclick="window.seasonCreatedAction('stay')" class="btn btn-ghost">
+              Continue Browsing
+            </button>
+          </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+          <button>close</button>
+        </form>
+      `;
+      document.body.appendChild(modal);
+
+      window.seasonCreatedAction = (action) => {
+        modal.close();
+        modal.remove();
+        if (action === 'view') {
+          setCurrentPage('season-stats');
+        }
+      };
+
+      modal.showModal();
     } catch (error) {
       console.error('Error creating season:', error);
       showError('Failed to create season: ' + error.message);
@@ -837,7 +853,7 @@ const SavedGames = ({ setCurrentPage }) => {
         
         <div className="card-body p-5">
           <div className="flex justify-between items-start">
-            <h3 className="card-title text-lg font-medium line-clamp-2 mb-1">
+            <h3 className="card-title text-lg font-medium truncate max-w-[100%] mb-1">
               {game.title}
             </h3>
             
@@ -868,30 +884,35 @@ const SavedGames = ({ setCurrentPage }) => {
             </div>
           </div>
           
-          <div className="card-actions justify-end mt-4 flex">
-            {/* Analyze Button */}
+          <div className="grid grid-cols-2 gap-2 mt-2">
             <button 
-              className="btn btn-ghost hover:bg-primary/10 px-6 gap-2 transition-all duration-300 group relative overflow-hidden"
+              className="btn btn-ghost bg-base-200/50 rounded-lg p-2 h-auto hover:bg-base-200 transition-all duration-300 group"
               onClick={(e) => {
                 e.stopPropagation();
                 analyzeGame(game);
               }}
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <span className="font-medium">Analyze</span>
+              <div className="flex flex-col items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span className="text-sm font-medium">Analyze</span>
+              </div>
             </button>
             
             <button 
-              className="btn btn-primary btn-sm"
+              className="btn btn-ghost bg-primary/10 rounded-lg p-2 h-auto hover:bg-primary/20 transition-all duration-300 group"
               onClick={(e) => {
                 e.stopPropagation();
                 continueWatching(game);
               }}
             >
-              Continue Tracking Stats
+              <div className="flex flex-col items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span className="text-sm font-medium">Edit Stats</span>
+              </div>
             </button>
           </div>
           
@@ -972,11 +993,94 @@ const SavedGames = ({ setCurrentPage }) => {
               Review and analyze statistics from your previously tracked basketball games
             </p>
             
-           
-            
+            {/* Season Creation Card */}
+            {currentUser && (
+              <div className="w-full max-w-2xl mx-auto mb-8 overflow-hidden">
+                <div className={`card bg-base-100 shadow-lg rounded-box border ${multiSelectMode ? 'border-primary' : 'border-base-200'} transition-all duration-300`}>
+                  <div className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full ${multiSelectMode ? 'bg-primary/20' : 'bg-primary/10'} flex items-center justify-center transition-all duration-300`}>
+                        <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 text-primary ${multiSelectMode ? 'animate-pulse' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      </div>
+                      <div className="flex flex-col items-start">
+                        <h3 className="font-bold text-lg">Create a New Season</h3>
+                        <p className="text-sm opacity-70">Combine multiple games to track season-long statistics</p>
+                      </div>
+                    </div>
+                    <button 
+                      className={`btn ${multiSelectMode ? 'btn-primary' : 'btn-outline'} btn-sm gap-2 transition-all duration-300 hover:scale-105`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleMultiSelectMode();
+                      }}
+                    >
+                      {!multiSelectMode ? (
+                        <>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                          Start Selection
+                        </>
+                      ) : (
+                        <>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          Cancel Selection ({selectedGames.length})
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Selection Instructions */}
+                  <div className={`overflow-hidden transition-all duration-300 ${multiSelectMode ? 'max-h-96' : 'max-h-0'}`}>
+                    <div className="p-4 bg-base-200/50">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                          <span className="text-primary font-bold">1</span>
+                        </div>
+                        <p className="text-sm">Select the games you want to include in your season</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                          <span className="text-primary font-bold">2</span>
+                        </div>
+                        <p className="text-sm">Click "Create Season" when you're ready</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            <div className="flex flex-wrap gap-4 justify-center">
+              <button
+                onClick={() => setCurrentPage('season-stats')}
+                className="btn btn-outline gap-2 min-w-[200px]"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                View Seasons
+              </button>
+              <button
+                onClick={() => setCurrentPage('youtube')}
+                className="btn btn-outline gap-2 min-w-[200px]"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Track New Game
+              </button>
+            </div>
+
+            {/* Filter Bar */}
             {(currentUser || (!currentUser && games.length > 0)) && !loading && games.length > 0 && (
               <div className="mt-8 bg-base-100/80 backdrop-blur-sm p-1 rounded-full border border-base-200 shadow-sm flex items-center flex-wrap gap-1">
-                {/* Filter buttons - all in a single flex container with items-center */}
+                {/* Filter buttons */}
                 <button
                   onClick={() => {
                     setFilterOption('all');
@@ -1011,71 +1115,7 @@ const SavedGames = ({ setCurrentPage }) => {
                   This Month
                 </button>
                 
-                {/* Season Filter Dropdown */}
-                {seasons.length > 0 && (
-                  <div className="dropdown dropdown-end inline-flex items-center">
-                    <button 
-                      type="button"
-                      tabIndex={0} 
-                      className={`h-10 px-4 rounded-full text-sm font-medium transition-all flex items-center ${
-                        filterOption === 'season' ? 'bg-primary text-primary-content shadow-md' : 'hover:bg-base-200'
-                      }`}
-                    >
-                      {selectedSeason
-                        ? seasons.find(s => s._id === selectedSeason)?.name || 'Season'
-                        : 'Season'
-                      }
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 max-h-96 overflow-y-auto">
-                      {seasons.map(season => (
-                        <li key={season._id}>
-                          <a 
-                            onClick={() => {
-                              setSelectedSeason(season._id);
-                              setFilterOption('season'); // Make sure to set the filter option to 'season'
-                            }} 
-                            className={selectedSeason === season._id ? 'active' : ''}
-                          >
-                            {season.name}
-                            <span className="badge badge-sm">{season.gameIds ? season.gameIds.length : 0}</span>
-                          </a>
-                        </li>
-                      ))}
-                      <li className="menu-title">
-                        <a onClick={() => setCurrentPage('season-stats')}>
-                          Manage Seasons
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
-                )}
-                
-                <div className="flex-grow"></div>
-                
-                {/* Multi-select mode toggle */}
-                {!multiSelectMode ? (
-                  <button
-                    className="h-10 px-4 rounded-full text-sm font-medium hover:bg-base-200 transition-all flex items-center"
-                    onClick={toggleMultiSelectMode}
-                  >
-                    Start a New Season
-                  </button>
-                ) : (
-                  <button
-                    className={`h-10 px-4 rounded-full text-sm font-medium transition-all flex items-center ${
-                      selectedGames.length > 0
-                        ? 'bg-success text-success-content shadow-md'
-                        : 'bg-warning text-warning-content shadow-md'
-                    }`}
-                    onClick={createSeasonFromSelection}
-                    disabled={selectedGames.length === 0}
-                  >
-                    Create Season ({selectedGames.length})
-                  </button>
-                )}
+               
               </div>
             )}
           </div>
@@ -1097,7 +1137,7 @@ const SavedGames = ({ setCurrentPage }) => {
             <div className="text-center py-16 px-6">
               <div className="w-20 h-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-6">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </div>
               <h2 className="text-2xl font-bold mb-3">Sign in to Access Your Games</h2>
@@ -1147,40 +1187,87 @@ const SavedGames = ({ setCurrentPage }) => {
               </div>
             )}
             
-      {/* Navigation buttons */}
-      <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
-                <div className="bg-base-100/80 backdrop-blur-lg rounded-2xl shadow-lg border border-base-content/5 p-2 flex gap-2">
-                  <button
-                    onClick={() => setCurrentPage('youtube')}
-                    className="btn btn-ghost hover:bg-primary/10 px-6 gap-2 transition-all duration-300 group relative overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary transition-transform duration-300 group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="font-medium">Track New Game</span>
-                  </button>
-
-                  <div className="w-px h-8 my-auto bg-base-content/10"></div>
-
-                  <button
-                    onClick={() => setCurrentPage('season-stats')}
-                    className="btn btn-ghost hover:bg-secondary/10 px-6 gap-2 transition-all duration-300 group relative overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-secondary/20 to-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
-                    <span className="font-medium">Season Stats</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-secondary transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 10v8m-4-5v5M8 10v8m-5 0h18a2 2 0 002-2V8a2 2 0 00-2-2H3a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
+      
 
            
           </div>
           
         )}
       </div>
+      {multiSelectMode && selectedGames.length > 0 && (
+        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-50 animate-fadeIn">
+          <div className="bg-base-100 shadow-lg rounded-full px-4 py-2 border border-base-300 flex items-center gap-3">
+            <span className="text-sm opacity-70">{selectedGames.length} games selected</span>
+            <button 
+              className="btn btn-primary btn-sm gap-2"
+              onClick={() => {
+                setNewSeasonName('');
+                const modal = document.getElementById('season_modal');
+                modal.showModal();
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Create Season
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Season Creation Modal */}
+      <dialog id="season_modal" className="modal modal-bottom sm:modal-middle">
+        <div className="modal-box">
+          <h3 className="font-bold text-lg mb-4">Create New Season</h3>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (newSeasonName.trim()) {
+              createSeasonFromSelection(newSeasonName.trim());
+              setNewSeasonName('');
+              const modal = document.getElementById('season_modal');
+              modal.close();
+            }
+          }}>
+            <div className="form-control">
+              <input 
+                type="text" 
+                placeholder="Enter season name" 
+                className="input input-bordered w-full" 
+                value={newSeasonName}
+                onChange={(e) => setNewSeasonName(e.target.value)}
+                autoFocus
+              />
+              <label className="label">
+                <span className="label-text-alt text-base-content/60">
+                  {selectedGames.length} games will be added to this season
+                </span>
+              </label>
+            </div>
+            <div className="modal-action">
+              <button 
+                type="button" 
+                className="btn btn-ghost" 
+                onClick={() => {
+                  setNewSeasonName('');
+                  const modal = document.getElementById('season_modal');
+                  modal.close();
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                className="btn btn-primary"
+                disabled={!newSeasonName.trim()}
+              >
+                Create Season
+              </button>
+            </div>
+          </form>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button>close</button>
+        </form>
+      </dialog>
     </div>
   );
 };

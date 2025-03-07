@@ -31,6 +31,27 @@ const Youtube = ({ setCurrentPage }) => {
   const [recentStat, setRecentStat] = useState(null);
   const recentStatTimeoutRef = useRef(null);
   const { success, error: showError, warning, info } = useNotification();
+  const [hasShownTeamGuide, setHasShownTeamGuide] = useState(() => {
+    const shown = localStorage.getItem('hasShownTeamGuide');
+    return shown === 'true';
+  });
+  const [hasClickedEditTeams, setHasClickedEditTeams] = useState(() => {
+    return localStorage.getItem('hasClickedEditTeams') === 'true';
+  });
+  const [hasClickedAddPlayer, setHasClickedAddPlayer] = useState(() => {
+    return localStorage.getItem('hasClickedAddPlayer') === 'true';
+  });
+
+  useEffect(() => {
+    if (!hasShownTeamGuide) {
+      const timer = setTimeout(() => {
+        info('Pro Tip: Start by setting up your teams and players using the buttons above the video 🏀');
+        setHasShownTeamGuide(true);
+        localStorage.setItem('hasShownTeamGuide', 'true');
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [hasShownTeamGuide]);
 
   // Load YouTube API
   useEffect(() => {
@@ -397,19 +418,34 @@ const Youtube = ({ setCurrentPage }) => {
   };
 
   const handleTeamChange = (e) => {
-    setSelectedTeam(e.target.value);
-    setSelectedPlayer(''); // Reset player selection
+    const newTeam = e.target.value;
+    setSelectedTeam(newTeam);
+    
+    // Auto-select the first player of the new team
+    const teamPlayers = teams[newTeam]?.players || [];
+    if (teamPlayers.length > 0) {
+      selectPlayerDirectly(teamPlayers[0]);
+    } else {
+      selectPlayerDirectly(null); // Clear selection if no players
+    }
   };
 
   const handlePlayerChange = (e) => {
     setSelectedPlayer(e.target.value);
   };
 
-  const handleTeamNameChange = (team, name) => {
-    setTeams(prevTeams => ({
-      ...prevTeams,
-      [team]: { ...prevTeams[team], name }
-    }));
+  const handleTeamNameChange = (team, newName) => {
+    if (newName.trim()) {
+      setTeams(prev => ({
+        ...prev,
+        [team]: { ...prev[team], name: newName.trim() }
+      }));
+      // Mark edit teams as clicked
+      if (!hasClickedEditTeams) {
+        setHasClickedEditTeams(true);
+        localStorage.setItem('hasClickedEditTeams', 'true');
+      }
+    }
   };
   
   const handleAddPlayer = () => {
@@ -422,6 +458,12 @@ const Youtube = ({ setCurrentPage }) => {
     if (teams[selectedTeam].players.includes(newPlayerName.trim())) {
       warning('This player already exists in the team');
       return;
+    }
+    
+    // Mark add player as clicked
+    if (!hasClickedAddPlayer) {
+      setHasClickedAddPlayer(true);
+      localStorage.setItem('hasClickedAddPlayer', 'true');
     }
     
     setTeams(prevTeams => ({
@@ -529,9 +571,65 @@ const Youtube = ({ setCurrentPage }) => {
       setTimeout(() => setIsSaved(false), 3000);
       
       success('Game saved successfully!');
+      
+      // Show post-save action dialog using DaisyUI modal
+      const modal = document.createElement('dialog');
+      modal.id = 'post-save-modal';
+      modal.className = 'modal modal-bottom sm:modal-middle';
+      modal.innerHTML = `
+        <div class="modal-box bg-base-100">
+          <h3 class="font-bold text-lg mb-4">Game Saved Successfully! 🎉</h3>
+          <p class="py-4">What would you like to do next?</p>
+          <div class="flex flex-col gap-3">
+            <button onclick="window.postSaveAction('saved-games')" class="btn btn-primary gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              View Saved Games
+            </button>
+            <button onclick="window.postSaveAction('new')" class="btn btn-secondary gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Track New Game
+            </button>
+            <button onclick="window.postSaveAction('stay')" class="btn btn-ghost gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              Stay Here
+            </button>
+          </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+          <button>close</button>
+        </form>
+      `;
+      document.body.appendChild(modal);
+      
+      // Add window function to handle modal actions
+      window.postSaveAction = (action) => {
+        modal.close();
+        modal.remove();
+        switch (action) {
+          case 'saved-games':
+            setCurrentPage('saved-games');
+            break;
+          case 'new':
+            localStorage.removeItem('continue-game');
+            window.location.reload();
+            break;
+          case 'stay':
+            // Do nothing, just close the modal
+            break;
+        }
+      };
+      
+      modal.showModal();
+      
     } catch (err) {
       console.error('Error saving game:', err);
-      warning(`Failed to save game: ${err.message}`);
+      warning('Failed to save game: ' + err.message);
     } finally {
       setSavingToDb(false);
     }
@@ -1012,15 +1110,15 @@ const Youtube = ({ setCurrentPage }) => {
                       {/* Team Selection Buttons */}
                       <div className="flex gap-2 mb-2">
                         <div className="flex-1 flex gap-2">
-                          <button 
+                          <button
                             className={`btn flex-1 ${selectedTeam === 'team1' ? 'btn-primary' : 'btn-outline'}`}
-                            onClick={() => setSelectedTeam('team1')}
+                            onClick={() => handleTeamChange({ target: { value: 'team1' } })}
                           >
                             {teams.team1.name}
                           </button>
-                          <button 
+                          <button
                             className={`btn flex-1 ${selectedTeam === 'team2' ? 'btn-primary' : 'btn-outline'}`}
-                            onClick={() => setSelectedTeam('team2')}
+                            onClick={() => handleTeamChange({ target: { value: 'team2' } })}
                           >
                             {teams.team2.name}
                           </button>
@@ -1031,10 +1129,16 @@ const Youtube = ({ setCurrentPage }) => {
                       <div className="flex justify-between items-center mb-2">
                         <label className="label-text font-medium">Select Player</label>
                         <div className="flex gap-2">
-                          <div className="dropdown dropdown-end">
+                          <div className="dropdown dropdown-end relative">
                             <label tabIndex={0} className="btn btn-ghost btn-xs">
                               Edit Teams
                             </label>
+                            {!hasClickedEditTeams && (
+                              <>
+                                <div className="absolute -top-2 -right-2 w-2 h-2 bg-primary rounded-full animate-ping"></div>
+                                <div className="absolute -top-2 -right-2 w-2 h-2 bg-primary rounded-full"></div>
+                              </>
+                            )}
                             <div tabIndex={0} className="dropdown-content z-[1] card card-compact w-64 p-2 shadow bg-base-100 border border-base-200">
                               <div className="card-body">
                                 <h3 className="font-bold text-lg">Edit Team Names</h3>
@@ -1063,10 +1167,16 @@ const Youtube = ({ setCurrentPage }) => {
                               </div>
                             </div>
                           </div>
-                          <div className="dropdown dropdown-end">
+                          <div className="dropdown dropdown-end relative">
                             <label tabIndex={0} className="btn btn-ghost btn-xs">
                               Add Player
                             </label>
+                            {!hasClickedAddPlayer && (
+                              <>
+                                <div className="absolute -top-2 -right-2 w-2 h-2 bg-primary rounded-full animate-ping"></div>
+                                <div className="absolute -top-2 -right-2 w-2 h-2 bg-primary rounded-full"></div>
+                              </>
+                            )}
                             <div tabIndex={0} className="dropdown-content z-[1] card card-compact w-64 p-2 shadow bg-base-100 border border-base-200">
                               <div className="card-body p-2">
                                 <div className="form-control">

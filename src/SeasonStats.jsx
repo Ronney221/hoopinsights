@@ -775,18 +775,19 @@ const SeasonStats = ({ setCurrentPage }) => {
                 ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {seasons.map(season => (
-                      <div 
+                      <button 
                         key={season._id}
-                        className={`relative group transform hover:scale-[1.02] transition-all duration-300 focus-within:outline-none ${
+                        onClick={() => setSelectedSeasonId(season._id)}
+                        className={`relative group transform hover:scale-[1.02] transition-all duration-300 focus:outline-none focus-visible:outline-none active:outline-none ${
                           selectedSeasonId === season._id ? 'ring-2 ring-primary' : ''
                         }`}
+                        style={{ WebkitTapHighlightColor: 'transparent' }}
                       >
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-secondary rounded-lg blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
-                        <button 
+                        <div 
                           className={`relative w-full p-6 bg-base-100/50 backdrop-blur-sm rounded-lg cursor-pointer text-left ${
                             selectedSeasonId === season._id ? 'bg-primary/10' : ''
                           }`}
-                          onClick={() => setSelectedSeasonId(season._id)}
                         >
                           <div className="flex justify-between items-start">
                             <div>
@@ -796,7 +797,7 @@ const SeasonStats = ({ setCurrentPage }) => {
                               </p>
                             </div>
                             <button 
-                              className="btn btn-ghost btn-sm btn-circle"
+                              className="btn btn-ghost btn-sm btn-circle focus:outline-none"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 deleteSeason(season._id);
@@ -808,8 +809,8 @@ const SeasonStats = ({ setCurrentPage }) => {
                               </svg>
                             </button>
                           </div>
-                        </button>
-                      </div>
+                        </div>
+                      </button>
                     ))}
 
               {/* Add Season Button */}
