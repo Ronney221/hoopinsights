@@ -777,38 +777,38 @@ const SeasonStats = ({ setCurrentPage }) => {
                     {seasons.map(season => (
                       <div 
                         key={season._id}
-                  className={`relative group transform hover:scale-[1.02] transition-all duration-300 ${
-                    selectedSeasonId === season._id ? 'ring-2 ring-primary' : ''
-                  }`}
-                >
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-secondary rounded-lg blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
-                  <div 
-                    className={`relative p-6 bg-base-100/50 backdrop-blur-sm rounded-lg cursor-pointer ${
-                      selectedSeasonId === season._id ? 'bg-primary/10' : ''
-                    }`}
-                        onClick={() => setSelectedSeasonId(season._id)}
+                        className={`relative group transform hover:scale-[1.02] transition-all duration-300 focus-within:outline-none ${
+                          selectedSeasonId === season._id ? 'ring-2 ring-primary' : ''
+                        }`}
                       >
-                    <div className="flex justify-between items-start">
-                        <div>
-                        <h3 className="text-lg font-bold mb-2">{season.name}</h3>
-                        <p className="text-sm opacity-70">
-                            {season.gameIds ? season.gameIds.length : 0} game{season.gameIds && season.gameIds.length !== 1 ? 's' : ''}
-                          </p>
-                        </div>
+                        <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-secondary rounded-lg blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
                         <button 
-                        className="btn btn-ghost btn-sm btn-circle"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteSeason(season._id);
-                          }}
-                          title="Delete season"
+                          className={`relative w-full p-6 bg-base-100/50 backdrop-blur-sm rounded-lg cursor-pointer text-left ${
+                            selectedSeasonId === season._id ? 'bg-primary/10' : ''
+                          }`}
+                          onClick={() => setSelectedSeasonId(season._id)}
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="text-lg font-bold mb-2">{season.name}</h3>
+                              <p className="text-sm opacity-70">
+                                {season.gameIds ? season.gameIds.length : 0} game{season.gameIds && season.gameIds.length !== 1 ? 's' : ''}
+                              </p>
+                            </div>
+                            <button 
+                              className="btn btn-ghost btn-sm btn-circle"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteSeason(season._id);
+                              }}
+                              title="Delete season"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
                         </button>
-                    </div>
-                  </div>
                       </div>
                     ))}
 
