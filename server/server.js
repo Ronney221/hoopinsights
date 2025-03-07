@@ -21,11 +21,12 @@ const app = express();
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? ['https://hoopinsights.vercel.app', 'http://localhost:5173'] // Add your production domain
+    ? ['https://hoopinsights.vercel.app', 'https://www.shotify.org', 'https://shotify.org', 'http://localhost:5173']
     : 'http://localhost:5173',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id', 'X-User-Email'],
-  credentials: true
+  credentials: true,
+  optionsSuccessStatus: 200
 }));
 
 app.use(express.json());
