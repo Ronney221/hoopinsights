@@ -13,6 +13,15 @@ const Shared = () => {
   const shareIdRef = useRef(window.location.pathname.split('/shared/')[1]);
   const controllerRef = useRef(null);
 
+  // Move handleNavigation outside useEffect
+  const handleNavigation = (page) => {
+    if (page === 'saved-games') {
+      window.location.href = '/saved-games';
+    } else if (page === 'home') {
+      window.location.href = '/';
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
     controllerRef.current = new AbortController();
@@ -144,7 +153,12 @@ const Shared = () => {
     );
   }
 
-  return game ? <Shotify sharedGame={game} setCurrentPage={() => {}} /> : null;
+  return game ? (
+    <Shotify 
+      sharedGame={game} 
+      setCurrentPage={handleNavigation}
+    /> 
+  ) : null;
 };
 
 export default Shared; 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNotification } from './contexts/NotificationContext';
 import { useAuth } from './contexts/AuthContext';
 import { STATS_ENDPOINTS, STATS_V2_ENDPOINTS, createApiHeaders } from './config/apiConfig';
+import { calculateBadges } from './utils/Shotify/badgeCalculator';
 
 const Shotify = ({ setCurrentPage, sharedGame = null }) => {
   const { currentUser } = useAuth();
@@ -11,12 +12,15 @@ const Shotify = ({ setCurrentPage, sharedGame = null }) => {
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
-  const [sortBy, setSortBy] = useState('points');
-  const [sortOrder, setSortOrder] = useState('desc');
-  const [selectedTeam, setSelectedTeam] = useState('all');
-  const [selectedPlayer, setSelectedPlayer] = useState('all');
-  const [selectedStat, setSelectedStat] = useState('all');
-  const [timelineData, setTimelineData] = useState([]);
+  const [selectedPlayer, setSelectedPlayer] = useState(() => {
+    // Select first player from team1 if available, otherwise from team2
+    if (sharedGame?.teams?.team1?.players?.length > 0) {
+      return sharedGame.teams.team1.players[0];
+    } else if (sharedGame?.teams?.team2?.players?.length > 0) {
+      return sharedGame.teams.team2.players[0];
+    }
+    return null;
+  });
   const [hasLoadedData, setHasLoadedData] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [expandedSection, setExpandedSection] = useState('stats');
@@ -92,6 +96,17 @@ const Shotify = ({ setCurrentPage, sharedGame = null }) => {
 
     loadSavedGame();
   }, [setCurrentPage, showError, hasLoadedData]);
+
+  // Also add an effect to set default player when game loads
+  useEffect(() => {
+    if (game && !selectedPlayer) {
+      if (game.teams.team1.players.length > 0) {
+        setSelectedPlayer(game.teams.team1.players[0]);
+      } else if (game.teams.team2.players.length > 0) {
+        setSelectedPlayer(game.teams.team2.players[0]);
+      }
+    }
+  }, [game]);
 
   // Copy share link to clipboard
   const copyShareLink = async () => {
@@ -399,209 +414,167 @@ const Shotify = ({ setCurrentPage, sharedGame = null }) => {
     };
   };
 
-  const exportToCSV = () => {
-    // Prepare data for both teams
-    const team1Stats = getTeamStats('team1');
-    const team2Stats = getTeamStats('team2');
-    const team1Players = game.teams.team1.players.map(player => ({
-      name: player,
-      team: game.teams.team1.name,
-      ...getPlayerStats(player, 'team1')
-    }));
-    const team2Players = game.teams.team2.players.map(player => ({
-      name: player,
-      team: game.teams.team2.name,
-      ...getPlayerStats(player, 'team2')
-    }));
+  // First, define the export configurations
+  const EXPORT_CONFIGS = [
+    {
+      format: 'CSV',
+      icon: 'M10 18v-2m4 2v-2m4 2v-2M8 6h13a1 1 0 011 1v10a1 1 0 01-1 1H8a1 1 0 01-1-1V7a1 1 0 011-1z',
+      description: 'Raw data export',
+      handler: (game) => {
+        const csvContent = [
+          `Game: ${game.title}`,
+          `Date: ${new Date().toLocaleDateString()}\n`,
+          'Team Statistics',
+          'Team,Points,FG Made,FG Attempts,FG%,3PT Made,3PT Attempts,3PT%,FT Made,FT Attempts,FT%,Rebounds,Assists,Steals,Blocks,Turnovers,Fouls',
+          ...['team1', 'team2'].map(teamId => {
+            const stats = getTeamStats(teamId);
+            return `${game.teams[teamId].name},${[
+              stats.points,
+              `${stats.fgMade}/${stats.fgAttempts}`,
+              `${(stats.fgMade/stats.fgAttempts*100||0).toFixed(1)}%`,
+              `${stats.threePtMade}/${stats.threePtAttempts}`,
+              `${(stats.threePtMade/stats.threePtAttempts*100||0).toFixed(1)}%`,
+              `${stats.ftMade}/${stats.ftAttempts}`,
+              `${(stats.ftMade/stats.ftAttempts*100||0).toFixed(1)}%`,
+              stats.rebounds,
+              stats.assists,
+              stats.steals,
+              stats.blocks,
+              stats.turnovers,
+              stats.fouls
+            ].join(',')}`;
+          }),
+          '\nPlayer Statistics',
+          'Player,Team,Points,FG Made,FG Attempts,FG%,3PT Made,3PT Attempts,3PT%,FT Made,FT Attempts,FT%,Rebounds,Assists,Steals,Blocks,Turnovers,Fouls',
+          ...[...game.teams.team1.players, ...game.teams.team2.players].map(player => {
+            const team = game.teams.team1.players.includes(player) ? game.teams.team1.name : game.teams.team2.name;
+            const stats = getPlayerStats(player, game.teams.team1.players.includes(player) ? 'team1' : 'team2');
+            return `${player},${team},${[
+              stats.points,
+              `${stats.fgMade}/${stats.fgAttempts}`,
+              stats.fgPercentage,
+              `${stats.threePtMade}/${stats.threePtAttempts}`,
+              stats.threePtPercentage,
+              `${stats.ftMade}/${stats.ftAttempts}`,
+              stats.ftPercentage,
+              stats.rebounds,
+              stats.assists,
+              stats.steals,
+              stats.blocks,
+              stats.turnovers,
+              stats.fouls
+            ].join(',')}`;
+          })
+        ].join('\n');
 
-    // Create CSV content
-    let csvContent = "Game: " + game.title + "\n";
-    csvContent += "Date: " + new Date().toLocaleDateString() + "\n\n";
-    
-    // Team Statistics
-    csvContent += "Team Statistics\n";
-    csvContent += "Team,Points,FG Made,FG Attempts,FG%,3PT Made,3PT Attempts,3PT%,FT Made,FT Attempts,FT%,Rebounds,Assists,Steals,Blocks,Turnovers,Fouls\n";
-    
-    [
-      { name: game.teams.team1.name, stats: team1Stats },
-      { name: game.teams.team2.name, stats: team2Stats }
-    ].forEach(team => {
-      const stats = team.stats;
-      csvContent += `${team.name},${stats.points},${stats.fgMade},${stats.fgAttempts},${(stats.fgMade/stats.fgAttempts*100||0).toFixed(1)}%,${stats.threePtMade},${stats.threePtAttempts},${(stats.threePtMade/stats.threePtAttempts*100||0).toFixed(1)}%,${stats.ftMade},${stats.ftAttempts},${(stats.ftMade/stats.ftAttempts*100||0).toFixed(1)}%,${stats.rebounds},${stats.assists},${stats.steals},${stats.blocks},${stats.turnovers},${stats.fouls}\n`;
-    });
-    
-    // Player Statistics
-    csvContent += "\nPlayer Statistics\n";
-    csvContent += "Player,Team,Points,FG Made,FG Attempts,FG%,3PT Made,3PT Attempts,3PT%,FT Made,FT Attempts,FT%,Rebounds,Assists,Steals,Blocks,Turnovers,Fouls\n";
-    
-    [...team1Players, ...team2Players].forEach(player => {
-      csvContent += `${player.name},${player.team},${player.points},${player.fgMade},${player.fgAttempts},${player.fgPercentage}%,${player.threePtMade},${player.threePtAttempts},${player.threePtPercentage}%,${player.ftMade},${player.ftAttempts},${player.ftPercentage}%,${player.rebounds},${player.assists},${player.steals},${player.blocks},${player.turnovers},${player.fouls}\n`;
-    });
-
-    // Create and trigger download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    if (link.download !== undefined) {
       const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
-      link.setAttribute("download", `${game.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_stats.csv`);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `${game.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_stats.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     }
-  };
-
-  const exportToJSON = () => {
-    // Prepare data for both teams
-    const team1Stats = getTeamStats('team1');
-    const team2Stats = getTeamStats('team2');
-    const team1Players = game.teams.team1.players.map(player => ({
-      name: player,
-      team: game.teams.team1.name,
-      ...getPlayerStats(player, 'team1')
-    }));
-    const team2Players = game.teams.team2.players.map(player => ({
-      name: player,
-      team: game.teams.team2.name,
-      ...getPlayerStats(player, 'team2')
-    }));
-
-    const jsonData = {
-      gameInfo: {
-        title: game.title,
-        date: new Date().toISOString(),
-        videoId: game.videoId,
-        videoUrl: `https://www.youtube.com/watch?v=${game.videoId}`
-      },
-      teams: {
-        [game.teams.team1.name]: {
-          stats: team1Stats,
-          players: team1Players
-        },
-        [game.teams.team2.name]: {
-          stats: team2Stats,
-          players: team2Players
-        }
-      }
-    };
-
-    // Create and trigger download
-    const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${game.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_stats.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  const exportToPDF = async () => {
-    // We'll use jspdf and jspdf-autotable for PDF generation
+    },
+    {
+      format: 'PDF',
+      icon: 'M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+      description: 'Detailed report',
+      handler: async (game) => {
     const { jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
-    
     const doc = new jsPDF();
     
-    // Add title
+        // Add title and date
     doc.setFontSize(20);
     doc.text(game.title, 14, 20);
-    
-    // Add date
     doc.setFontSize(12);
     doc.text(`Generated on ${new Date().toLocaleDateString()}`, 14, 30);
     
     // Team Statistics
-    doc.setFontSize(16);
-    doc.text('Team Statistics', 14, 40);
-    
     const team1Stats = getTeamStats('team1');
     const team2Stats = getTeamStats('team2');
     
     autoTable(doc, {
       startY: 45,
       head: [['Team', 'Points', 'FG%', '3P%', 'FT%', 'REB', 'AST', 'STL', 'BLK']],
-      body: [
-        [
-          game.teams.team1.name,
-          team1Stats.points,
-          `${((team1Stats.fgMade/team1Stats.fgAttempts)*100||0).toFixed(1)}%`,
-          `${((team1Stats.threePtMade/team1Stats.threePtAttempts)*100||0).toFixed(1)}%`,
-          `${((team1Stats.ftMade/team1Stats.ftAttempts)*100||0).toFixed(1)}%`,
-          team1Stats.rebounds,
-          team1Stats.assists,
-          team1Stats.steals,
-          team1Stats.blocks
-        ],
-        [
-          game.teams.team2.name,
-          team2Stats.points,
-          `${((team2Stats.fgMade/team2Stats.fgAttempts)*100||0).toFixed(1)}%`,
-          `${((team2Stats.threePtMade/team2Stats.threePtAttempts)*100||0).toFixed(1)}%`,
-          `${((team2Stats.ftMade/team2Stats.ftAttempts)*100||0).toFixed(1)}%`,
-          team2Stats.rebounds,
-          team2Stats.assists,
-          team2Stats.steals,
-          team2Stats.blocks
-        ]
-      ]
-    });
-    
-    // Player Statistics
-    doc.setFontSize(16);
-    doc.text('Player Statistics', 14, doc.lastAutoTable.finalY + 20);
-    
-    const playerStats = [...game.teams.team1.players, ...game.teams.team2.players].map(player => {
-      const stats = getPlayerStats(player, game.teams.team1.players.includes(player) ? 'team1' : 'team2');
-      const team = game.teams.team1.players.includes(player) ? game.teams.team1.name : game.teams.team2.name;
+          body: [game.teams.team1, game.teams.team2].map(team => {
+            const stats = getTeamStats(team === game.teams.team1 ? 'team1' : 'team2');
       return [
-        player,
-        team,
+              team.name,
         stats.points,
-        `${stats.fgMade}/${stats.fgAttempts}`,
-        `${stats.threePtMade}/${stats.threePtAttempts}`,
-        `${stats.ftMade}/${stats.ftAttempts}`,
+              `${((stats.fgMade/stats.fgAttempts)*100||0).toFixed(1)}%`,
+              `${((stats.threePtMade/stats.threePtAttempts)*100||0).toFixed(1)}%`,
+              `${((stats.ftMade/stats.ftAttempts)*100||0).toFixed(1)}%`,
         stats.rebounds,
         stats.assists,
         stats.steals,
         stats.blocks
       ];
-    });
-    
-    autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 25,
-      head: [['Player', 'Team', 'PTS', 'FG', '3PT', 'FT', 'REB', 'AST', 'STL', 'BLK']],
-      body: playerStats
-    });
-    
-    // Save the PDF
+          })
+        });
+        
     doc.save(`${game.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_stats.pdf`);
-  };
+      }
+    },
+    {
+      format: 'JSON',
+      icon: 'M4 6h16M4 10h16M4 14h16M4 18h16',
+      description: 'API compatible',
+      handler: (game) => {
+        const jsonData = {
+          gameInfo: {
+            title: game.title,
+            date: new Date().toISOString(),
+            videoId: game.videoId,
+            videoUrl: `https://www.youtube.com/watch?v=${game.videoId}`
+          },
+          teams: Object.fromEntries(
+            ['team1', 'team2'].map(teamId => [
+              game.teams[teamId].name,
+              {
+                stats: getTeamStats(teamId),
+                players: game.teams[teamId].players.map(player => ({
+                  name: player,
+                  ...getPlayerStats(player, teamId)
+                }))
+              }
+            ])
+          )
+        };
 
-  // Replace the Export Button section with the new design
+        const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${game.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_stats.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+    }
+  ];
+
+  // Then simplify the ExportSection component
   const ExportSection = () => (
     <div className="mb-6">
       <h3 className="text-lg font-bold mb-4">Export Formats</h3>
       <div className="grid grid-cols-3 gap-4">
-        {[
-          { format: 'CSV', icon: 'M10 18v-2m4 2v-2m4 2v-2M8 6h13a1 1 0 011 1v10a1 1 0 01-1 1H8a1 1 0 01-1-1V7a1 1 0 011-1z', description: 'Raw data export', onClick: exportToCSV },
-          { format: 'PDF', icon: 'M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', description: 'Detailed report', onClick: exportToPDF },
-          { format: 'JSON', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16', description: 'API compatible', onClick: exportToJSON }
-        ].map((item, index) => (
+        {EXPORT_CONFIGS.map(({ format, icon, description, handler }, index) => (
           <div 
             key={index} 
             className="bg-base-200/50 p-4 rounded-xl text-center hover:bg-base-200 transition-colors cursor-pointer group/format"
-            onClick={item.onClick}
+            onClick={() => handler(game)}
           >
             <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center group-hover/format:bg-primary/20 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={icon} />
               </svg>
             </div>
-            <div className="font-medium mb-1">{item.format}</div>
-            <div className="text-xs opacity-60">{item.description}</div>
-            {/* Download Progress - Initially Hidden */}
+            <div className="font-medium mb-1">{format}</div>
+            <div className="text-xs opacity-60">{description}</div>
             <div className="mt-2 opacity-0 group-hover/format:opacity-100 transition-opacity">
               <div className="h-1 bg-base-300 rounded-full overflow-hidden">
                 <div className="h-full bg-primary rounded-full transition-all duration-1000 w-0 group-hover/format:w-full"></div>
@@ -614,563 +587,53 @@ const Shotify = ({ setCurrentPage, sharedGame = null }) => {
   );
 
   const getTeamLeaders = (teamId) => {
-    if (!game || !game.teams || !game.teams[teamId]) return null;
+    if (!game?.teams?.[teamId]) return null;
     
-    const leaders = {
-      points: { value: 0, players: [] },
-      rebounds: { value: 0, players: [] },
-      assists: { value: 0, players: [] },
-      steals: { value: 0, players: [] },
-      blocks: { value: 0, players: [] },
-      fgPercentage: { value: 0, players: [] },
-      threePtMade: { value: 0, players: [] },
-      turnovers: { value: 0, players: [] },
-      ftPercentage: { value: 0, players: [] }
-    };
+    const statTypes = ['points', 'rebounds', 'assists', 'steals', 'blocks', 
+                      'fgPercentage', 'threePtMade', 'turnovers', 'ftPercentage'];
+    const leaders = Object.fromEntries(
+      statTypes.map(stat => [stat, { value: 0, players: [] }])
+    );
     
     game.teams[teamId].players.forEach(player => {
       const stats = getPlayerStats(player, teamId);
       if (!stats) return;
       
-      // Update points leader
-      if (stats.points > leaders.points.value) {
-        leaders.points = { value: stats.points, players: [player] };
-      } else if (stats.points === leaders.points.value) {
-        leaders.points.players.push(player);
-      }
-      
-      // Update rebounds leader
-      if (stats.rebounds > leaders.rebounds.value) {
-        leaders.rebounds = { value: stats.rebounds, players: [player] };
-      } else if (stats.rebounds === leaders.rebounds.value) {
-        leaders.rebounds.players.push(player);
-      }
-      
-      // Update assists leader
-      if (stats.assists > leaders.assists.value) {
-        leaders.assists = { value: stats.assists, players: [player] };
-      } else if (stats.assists === leaders.assists.value) {
-        leaders.assists.players.push(player);
-      }
-      
-      // Update steals leader
-      if (stats.steals > leaders.steals.value) {
-        leaders.steals = { value: stats.steals, players: [player] };
-      } else if (stats.steals === leaders.steals.value) {
-        leaders.steals.players.push(player);
-      }
-      
-      // Update blocks leader
-      if (stats.blocks > leaders.blocks.value) {
-        leaders.blocks = { value: stats.blocks, players: [player] };
-      } else if (stats.blocks === leaders.blocks.value) {
-        leaders.blocks.players.push(player);
-      }
-      
-      // Update FG% leader (minimum 5 attempts)
-      if (stats.fgAttempts >= 5 && stats.fgPercentage > leaders.fgPercentage.value) {
-        leaders.fgPercentage = { value: stats.fgPercentage, players: [player] };
-      } else if (stats.fgAttempts >= 5 && stats.fgPercentage === leaders.fgPercentage.value) {
-        leaders.fgPercentage.players.push(player);
-      }
-      
-      // Update 3PT made leader
-      if (stats.threePtMade > leaders.threePtMade.value) {
-        leaders.threePtMade = { value: stats.threePtMade, players: [player] };
-      } else if (stats.threePtMade === leaders.threePtMade.value) {
-        leaders.threePtMade.players.push(player);
-      }
-      
-      // Update turnovers leader
-      if (stats.turnovers > leaders.turnovers.value) {
-        leaders.turnovers = { value: stats.turnovers, players: [player] };
-      } else if (stats.turnovers === leaders.turnovers.value) {
-        leaders.turnovers.players.push(player);
-      }
-      
-      // Update FT% leader (minimum 2 attempts)
-      if (stats.ftAttempts >= 2 && stats.ftPercentage > leaders.ftPercentage.value) {
-        leaders.ftPercentage = { value: stats.ftPercentage, players: [player] };
-      } else if (stats.ftAttempts >= 2 && stats.ftPercentage === leaders.ftPercentage.value) {
-        leaders.ftPercentage.players.push(player);
-      }
+      Object.entries(stats).forEach(([stat, value]) => {
+        if (leaders[stat] && value > leaders[stat].value) {
+          leaders[stat] = { value, players: [player] };
+        } else if (leaders[stat] && value === leaders[stat].value) {
+          leaders[stat].players.push(player);
+        }
+      });
     });
     
     return leaders;
   };
 
-  const calculateBadges = (stats, teamLeaders) => {
-    const badges = [];
-    
-    // MVP Badge (points + assists * 2)
-    const mvpScore = stats.points + (stats.assists * 2);
-    if (mvpScore > 0) {
-      if (mvpScore >= 30) {
-        badges.push({ 
-          name: 'MVP', 
-          icon: '🏆🏆🏆', 
-          level: 'Gold', 
-          progress: 100,
-          description: `Generated ${stats.points} points and ${stats.assists * 2} potential points from assists`,
-          metrics: 'Points + (Assists × 2) ≥ 30'
-        });
-      } else if (mvpScore >= 20) {
-        badges.push({ 
-          name: 'MVP', 
-          icon: '🏆🏆', 
-          level: 'Silver', 
-          progress: 75,
-          description: `Generated ${stats.points} points and ${stats.assists * 2} potential points from assists`,
-          metrics: 'Points + (Assists × 2) ≥ 20'
-        });
-      } else if (mvpScore >= 10) {
-        badges.push({ 
-          name: 'MVP', 
-          icon: '🏆', 
-          level: 'Bronze', 
-          progress: 45,
-          description: `Generated ${stats.points} points and ${stats.assists * 2} potential points from assists`,
-          metrics: 'Points + (Assists × 2) ≥ 10'
-        });
-      }
-    }
-    
-    // Big Man Badge (rebounds + blocks * 2)
-    const bigManScore = stats.rebounds + (stats.blocks * 2);
-    if (bigManScore > 0) {
-      if (bigManScore >= 15) {
-        badges.push({ 
-          name: 'Big Man', 
-          icon: '💪💪💪', 
-          level: 'Gold', 
-          progress: 100,
-          description: `Dominated the paint with ${stats.rebounds} rebounds and ${stats.blocks} blocks`,
-          metrics: 'Rebounds + (Blocks × 2) ≥ 15'
-        });
-      } else if (bigManScore >= 10) {
-        badges.push({ 
-          name: 'Big Man', 
-          icon: '💪💪', 
-          level: 'Silver', 
-          progress: 75,
-          description: `Dominated the paint with ${stats.rebounds} rebounds and ${stats.blocks} blocks`,
-          metrics: 'Rebounds + (Blocks × 2) ≥ 10'
-        });
-      } else if (bigManScore >= 5) {
-        badges.push({ 
-          name: 'Big Man', 
-          icon: '💪', 
-          level: 'Bronze', 
-          progress: 45,
-          description: `Dominated the paint with ${stats.rebounds} rebounds and ${stats.blocks} blocks`,
-          metrics: 'Rebounds + (Blocks × 2) ≥ 5'
-        });
-      }
-    }
-    
-    // Playmaker Badge (assists vs turnovers)
-    if (stats.assists > 0) {
-      const assistRatio = stats.assists / (stats.turnovers || 1);
-      if (assistRatio >= 3) {
-        badges.push({ 
-          name: 'Playmaker', 
-          icon: '🏀🏀🏀', 
-          level: 'Gold', 
-          progress: 100,
-          description: `${stats.assists}:${stats.turnovers} assist to turnover ratio`,
-          metrics: 'Assist:Turnover Ratio ≥ 3:1'
-        });
-      } else if (assistRatio >= 2) {
-        badges.push({ 
-          name: 'Playmaker', 
-          icon: '🏀🏀🏀', 
-          level: 'Silver', 
-          progress: 75,
-          description: `${stats.assists}:${stats.turnovers} assist to turnover ratio`,
-          metrics: 'Assist:Turnover Ratio ≥ 2:1'
-        });
-      } else if (assistRatio >= 1.5) {
-        badges.push({ 
-          name: 'Playmaker', 
-          icon: '🏀', 
-          level: 'Bronze', 
-          progress: 45,
-          description: `${stats.assists}:${stats.turnovers} assist to turnover ratio`,
-          metrics: 'Assist:Turnover Ratio ≥ 1.5:1'
-        });
-      }
-    }
-    
-    // Lockdown Defender Badge (steals + blocks)
-    const defenseScore = (stats.steals * 2) + (stats.blocks * 2);
-    if (defenseScore > 0) {
-      if (defenseScore >= 10) {
-        badges.push({ 
-          name: 'Lockdown', 
-          icon: '🛡️🛡️🛡️', 
-          level: 'Gold', 
-          progress: 100,
-          description: `Defensive force with ${stats.steals} steals and ${stats.blocks} blocks`,
-          metrics: '(Steals × 2) + (Blocks × 2) ≥ 10'
-        });
-      } else if (defenseScore >= 6) {
-        badges.push({ 
-          name: 'Lockdown', 
-          icon: '🛡️🛡️', 
-          level: 'Silver', 
-          progress: 75,
-          description: `Defensive force with ${stats.steals} steals and ${stats.blocks} blocks`,
-          metrics: '(Steals × 2) + (Blocks × 2) ≥ 6'
-        });
-      } else if (defenseScore >= 4) {
-        badges.push({ 
-          name: 'Lockdown', 
-          icon: '🛡️', 
-          level: 'Bronze', 
-          progress: 45,
-          description: `Defensive force with ${stats.steals} steals and ${stats.blocks} blocks`,
-          metrics: '(Steals × 2) + (Blocks × 2) ≥ 4'
-        });
-      }
-    }
-    
-    // Sharpshooter Badge (FG% and 3PT makes)
-    if (stats.fgAttempts >= 5 || stats.threePtMade >= 2) {
-      const shootingScore = ((stats.fgPercentage * 0.6) + (stats.threePtMade * 15)) / 2;
-      if (shootingScore >= 50) {
-        badges.push({ 
-          name: 'Sharpshooter', 
-          icon: '🎯🎯🎯', 
-          level: 'Gold', 
-          progress: 100,
-          description: `${stats.fgPercentage}% FG with ${stats.threePtMade} three-pointers made`,
-          metrics: '(FG% × 0.6 + 3PM × 15) ÷ 2 ≥ 50'
-        });
-      } else if (shootingScore >= 35) {
-        badges.push({ 
-          name: 'Sharpshooter', 
-          icon: '🎯🎯', 
-          level: 'Silver', 
-          progress: 75,
-          description: `${stats.fgPercentage}% FG with ${stats.threePtMade} three-pointers made`,
-          metrics: '(FG% × 0.6 + 3PM × 15) ÷ 2 ≥ 35'
-        });
-      } else if (shootingScore >= 25) {
-        badges.push({ 
-          name: 'Sharpshooter', 
-          icon: '🎯🎯', 
-          level: 'Bronze', 
-          progress: 45,
-          description: `${stats.fgPercentage}% FG with ${stats.threePtMade} three-pointers made`,
-          metrics: '(FG% × 0.6 + 3PM × 15) ÷ 2 ≥ 25'
-        });
-      }
-    }
-    
-    // Bricks Badge (poor shooting)
-    if (stats.fgAttempts >= 5) {
-      const brickScore = (100 - stats.fgPercentage) + (100 - stats.ftPercentage);
-      if (brickScore >= 120) {
-        badges.push({ 
-          name: 'Bricklayer', 
-          icon: '🧱🧱🧱', 
-          level: 'Gold', 
-          progress: 100,
-          description: `Struggled with ${stats.fgPercentage}% FG and ${stats.ftPercentage}% FT`,
-          metrics: '(100 - FG%) + (100 - FT%) ≥ 120'
-        });
-      } else if (brickScore >= 100) {
-        badges.push({ 
-          name: 'Bricklayer', 
-          icon: '🧱🧱', 
-          level: 'Silver', 
-          progress: 75,
-          description: `Struggled with ${stats.fgPercentage}% FG and ${stats.ftPercentage}% FT`,
-          metrics: '(100 - FG%) + (100 - FT%) ≥ 100'
-        });
-      } else if (brickScore >= 80) {
-        badges.push({ 
-          name: 'Bricklayer', 
-          icon: '🧱', 
-          level: 'Bronze', 
-          progress: 45,
-          description: `Struggled with ${stats.fgPercentage}% FG and ${stats.ftPercentage}% FT`,
-          metrics: '(100 - FG%) + (100 - FT%) ≥ 80'
-        });
-      }
-    }
-    
-    // Butterfingers Badge (high turnovers)
-    if (stats.turnovers > 0) {
-      const turnoverRatio = stats.turnovers / (stats.assists || 1);
-      if (turnoverRatio >= 3 && stats.turnovers >= 4) {
-        badges.push({ 
-          name: 'Butterfingers', 
-          icon: '🧈🧈🧈', 
-          level: 'Gold', 
-          progress: 100,
-          description: `${stats.turnovers} turnovers with ${stats.assists} assists`,
-          metrics: 'Turnover:Assist Ratio ≥ 3:1 and TO ≥ 4'
-        });
-      } else if (turnoverRatio >= 2 && stats.turnovers >= 3) {
-        badges.push({ 
-          name: 'Butterfingers', 
-          icon: '🧈🧈', 
-          level: 'Silver', 
-          progress: 75,
-          description: `${stats.turnovers} turnovers with ${stats.assists} assists`,
-          metrics: 'Turnover:Assist Ratio ≥ 2:1 and TO ≥ 3'
-        });
-      } else if (turnoverRatio >= 1.5 && stats.turnovers >= 2) {
-        badges.push({ 
-          name: 'Butterfingers', 
-          icon: '🧈', 
-          level: 'Bronze', 
-          progress: 45,
-          description: `${stats.turnovers} turnovers with ${stats.assists} assists`,
-          metrics: 'Turnover:Assist Ratio ≥ 1.5:1 and TO ≥ 2'
-        });
-      }
-    }
-    
-    return badges;
-  };
-
   const sortData = (data, key) => {
     if (!key) return data;
-    
-    return [...data].sort((a, b) => {
-      let aValue, bValue;
-      
-      switch (key) {
-        case 'points':
-          aValue = a.points;
-          bValue = b.points;
-          break;
-        case 'fgPercentage':
-          aValue = a.fgPercentage;
-          bValue = b.fgPercentage;
-          break;
-        case 'threePtPercentage':
-          aValue = a.threePtPercentage;
-          bValue = b.threePtPercentage;
-          break;
-        case 'ftPercentage':
-          aValue = a.ftPercentage;
-          bValue = b.ftPercentage;
-          break;
-        case 'rebounds':
-          aValue = a.rebounds;
-          bValue = b.rebounds;
-          break;
-        case 'assists':
-          aValue = a.assists;
-          bValue = b.assists;
-          break;
-        case 'steals':
-          aValue = a.steals;
-          bValue = b.steals;
-          break;
-        case 'blocks':
-          aValue = a.blocks;
-          bValue = b.blocks;
-          break;
-        case 'turnovers':
-          aValue = a.turnovers;
-          bValue = b.turnovers;
-          break;
-        default:
-          return 0;
-      }
-
-      if (sortConfig.direction === 'asc') {
-        return aValue - bValue;
-      }
-      return bValue - aValue;
-    });
+    return [...data].sort((a, b) => 
+      sortConfig.direction === 'asc' ? a[key] - b[key] : b[key] - a[key]
+    );
   };
 
   // Add this function after getTeamLeaders
-  const calculateEfficiency = (stats) => {
-    const {
-      fgMade,
-      fgAttempts,
-      threePtMade,
-      threePtAttempts,
-      ftMade,
-      ftAttempts,
-      rebounds,
-      assists,
-      steals,
-      blocks,
-      turnovers,
-      fouls
-    } = stats;
+  const calculateEfficiency = ({
+    fgMade, fgAttempts, threePtMade, threePtAttempts,
+    ftMade, ftAttempts, rebounds, assists, steals, blocks,
+    turnovers, fouls
+  }) => Math.round(
+    (fgMade * 2 - fgAttempts) +
+    (threePtMade * 3 - threePtAttempts) +
+    (ftMade * 2 - ftAttempts) +
+    (rebounds * 0.5) +
+    (assists * 1.5) +
+    ((steals + blocks) * 2) +
+    (turnovers * -2) +
+    (fouls * -0.5)
+  );
 
-    // Calculate shooting efficiency
-    const fgScore = fgMade - (fgAttempts - fgMade);
-    const threePtScore = (threePtMade * 1.5) - (threePtAttempts - threePtMade);
-    const ftScore = ftMade - (ftAttempts - ftMade);
-
-    // Calculate other contributions
-    const reboundScore = rebounds * 0.5;
-    const assistScore = assists * 1.5;
-    const stealScore = steals * 2;
-    const blockScore = blocks * 2;
-
-    // Calculate negative contributions
-    const turnoverScore = turnovers * -2;
-    const foulScore = fouls * -0.5;
-
-    // Combine all scores
-    const totalScore = fgScore + threePtScore + ftScore + reboundScore + 
-                      assistScore + stealScore + blockScore + turnoverScore + foulScore;
-
-    return Math.round(totalScore);
-  };
-
-  const GameTimeline = () => {
-    const [selectedQuarter, setSelectedQuarter] = useState(1);
-    const [selectedPlayer, setSelectedPlayer] = useState(null);
-
-    // Calculate scoring timeline data
-    const timelineData = game.quarters.map((quarter, index) => {
-      const team1Score = quarter.team1Score;
-      const team2Score = quarter.team2Score;
-      const leadChange = team1Score !== team2Score && 
-                        (index === 0 || team1Score !== game.quarters[index - 1].team1Score || 
-                         team2Score !== game.quarters[index - 1].team2Score);
-      
-      return {
-        quarter: index + 1,
-        team1Score,
-        team2Score,
-        leadChange,
-        team1Momentum: team1Score - (index > 0 ? game.quarters[index - 1].team1Score : 0),
-        team2Momentum: team2Score - (index > 0 ? game.quarters[index - 1].team2Score : 0)
-      };
-    });
-
-    // Calculate player performance trends
-    const playerTrends = game.teams.team1.players.map(player => {
-      const stats = getPlayerStats(player, 'team1');
-      const quarters = game.quarters.map((quarter, index) => {
-        const quarterStats = quarter.team1Stats[player] || {};
-        return {
-          quarter: index + 1,
-          points: quarterStats.points || 0,
-          fgPercentage: quarterStats.fgPercentage || 0,
-          threePtPercentage: quarterStats.threePtPercentage || 0,
-          efficiency: calculateEfficiency(quarterStats)
-        };
-      });
-
-      return {
-        name: player,
-        quarters,
-        hotStreak: quarters.filter(q => q.points >= 8).length,
-        coldStreak: quarters.filter(q => q.points === 0).length
-      };
-    });
-
-    return (
-      <div className="space-y-6">
-        {/* Scoring Timeline */}
-        <div className="bg-base-200 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">Scoring Timeline</h3>
-          <div className="relative h-64">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-full h-1 bg-base-300"></div>
-            </div>
-            {timelineData.map((data, index) => (
-              <div key={index} className="absolute top-0 left-0 w-full">
-                <div className="flex justify-between px-4">
-                  <div className={`text-sm ${data.team1Momentum > 0 ? 'text-success' : ''}`}>
-                    {data.team1Score}
-                  </div>
-                  <div className={`text-sm ${data.team2Momentum > 0 ? 'text-success' : ''}`}>
-                    {data.team2Score}
-                  </div>
-                </div>
-                {data.leadChange && (
-                  <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="bg-primary text-primary-content text-xs px-2 py-1 rounded-full">
-                      Lead Change
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Player Performance Trends */}
-        <div className="bg-base-200 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">Player Performance Trends</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {playerTrends.map(player => (
-              <div key={player.name} className="bg-base-100 p-4 rounded-lg">
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="font-medium">{player.name}</h4>
-                  <div className="flex gap-2">
-                    {player.hotStreak > 0 && (
-                      <div className="badge badge-success">Hot Streak</div>
-                    )}
-                    {player.coldStreak > 0 && (
-                      <div className="badge badge-error">Cold Streak</div>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {player.quarters.map((quarter, index) => (
-                    <div key={index} className="flex justify-between items-center">
-                      <span className="text-sm opacity-60">Q{quarter.quarter}</span>
-                      <div className="flex gap-4">
-                        <span className="text-sm">{quarter.points} pts</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Critical Moments */}
-        <div className="bg-base-200 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">Critical Moments</h3>
-          <div className="space-y-4">
-            {game.quarters.map((quarter, index) => (
-              <div key={index} className="bg-base-100 p-4 rounded-lg">
-                <h4 className="font-medium mb-2">Quarter {index + 1}</h4>
-                <div className="space-y-2">
-                  {quarter.team1Stats && Object.entries(quarter.team1Stats).map(([player, stats]) => {
-                    const efficiency = calculateEfficiency(stats);
-                    if (efficiency >= 5 || stats.points >= 8) {
-                      return (
-                        <div key={player} className="flex justify-between items-center">
-                          <span className="text-sm">{player}</span>
-                          <div className="flex gap-2">
-                            {stats.points >= 8 && (
-                              <div className="badge badge-success">Clutch Shot</div>
-                            )}
-                            {efficiency >= 5 && (
-                              <div className="badge badge-primary">Key Play</div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   if (loading) {
     return (
@@ -1228,14 +691,36 @@ const Shotify = ({ setCurrentPage, sharedGame = null }) => {
 
   return (
     <div className="min-h-screen bg-base-100 pb-12">
-      {/* Hero section with YouTube thumbnail */}
-      <section className="relative py-20 sm:py-24 md:py-28 overflow-hidden">
-        {/* Decorative elements */}
+      {/* Remove the sticky nav header and replace the hero section with this */}
+      <section className="relative py-8 mb-8">
+        {/* Background gradients */}
         <div className="absolute top-0 -right-64 w-full md:w-[60rem] h-[30rem] bg-primary/5 rounded-full blur-3xl -z-10 transform-gpu"></div>
         <div className="absolute -bottom-32 -left-64 w-full md:w-[60rem] h-[30rem] bg-secondary/5 rounded-full blur-3xl -z-10 transform-gpu"></div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-8">
+          {/* Back Navigation */}
+          <div className="mb-6">
+            <button
+              onClick={() => setCurrentPage('saved-games')}
+              className="group inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg hover:bg-base-200 transition-all"
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className="h-5 w-5 group-hover:-translate-x-1 transition-transform" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Games
+            </button>
+          </div>
+
+          {/* Two Column Layout for Title and Video */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            {/* Title and Description */}
+            <div className="text-left lg:pr-8">
             <div className="inline-block animate-fadeIn">
               <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-3 inline-block">
                 Shared Game Stats
@@ -1243,101 +728,146 @@ const Shotify = ({ setCurrentPage, sharedGame = null }) => {
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">
                 {game.title}
               </h1>
-              <p className="text-base sm:text-lg opacity-70 max-w-2xl mx-auto">
+                <p className="text-base sm:text-lg opacity-70">
                 Game statistics for {game.teams.team1.name} vs {game.teams.team2.name}
               </p>
+              </div>
             </div>
             
-            <div className="flex flex-wrap justify-center gap-3 mt-6">
-              <button
-                onClick={copyShareLink}
-                className="btn btn-outline btn-sm gap-2"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-                Copy Share Link
-              </button>
-              
-              <button
-                onClick={() => window.open(`https://www.youtube.com/watch?v=${game.videoId}`, '_blank')}
-                className="btn btn-outline btn-accent btn-sm gap-2"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Watch on YouTube
-              </button>
-              
-              <button
-                onClick={handleSaveToMyAccount}
-                className="btn btn-primary btn-sm gap-2"
-                disabled={saving}
-              >
-                {saving ? (
-                  <>
-                    <span className="loading loading-spinner loading-xs"></span>
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                    </svg>
-                    Save to My Account
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-          
-          {/* YouTube Thumbnail */}
-          <div className="relative mx-auto max-w-3xl overflow-hidden rounded-xl shadow-xl border border-base-300 bg-base-100 animate-fadeIn">
-            <div className="relative aspect-video">
+            {/* YouTube Thumbnail */}
+            <div className="relative aspect-video rounded-xl shadow-xl border border-base-300 bg-base-100 animate-fadeIn overflow-hidden group">
               <img
                 src={`https://img.youtube.com/vi/${game.videoId}/maxresdefault.jpg`}
                 alt={game.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 onError={(e) => {
-                  // Fallback to lower resolution if HD thumbnail is not available
                   e.target.src = `https://img.youtube.com/vi/${game.videoId}/0.jpg`;
                 }}
               />
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                <button
+              <button
                   onClick={() => window.open(`https://www.youtube.com/watch?v=${game.videoId}`, '_blank')}
-                  className="btn btn-circle btn-lg bg-red-600 hover:bg-red-700 border-none text-white"
-                >
+                  className="btn btn-circle btn-lg bg-red-600 hover:bg-red-700 border-none text-white transform-gpu group-hover:scale-110 transition-transform"
+              >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                  </svg>
-                </button>
+                </svg>
+              </button>
               </div>
             </div>
           </div>
         </div>
       </section>
+              
+      {/* Main Action Buttons Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Go Back to Saved Games */}
+              <button
+            onClick={() => setCurrentPage('saved-games')}
+            className="group relative flex flex-col items-center gap-4 p-6 rounded-2xl bg-accent/10 hover:bg-accent/20 transition-all duration-300"
+          >
+            <div className="w-16 h-16 flex items-center justify-center rounded-full bg-accent/20 group-hover:scale-110 transition-transform">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+                </svg>
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-1">Back to Games</h3>
+              <p className="text-sm opacity-70">Return to library</p>
+            </div>
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-accent scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
+              </button>
+              
+          {/* Share Game */}
+          <button
+            onClick={copyShareLink}
+            className="group relative flex flex-col items-center gap-4 p-6 rounded-2xl bg-secondary/10 hover:bg-secondary/20 transition-all duration-300"
+          >
+            <div className="w-16 h-16 flex items-center justify-center rounded-full bg-secondary/20 group-hover:scale-110 transition-transform">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-1">Share Game</h3>
+              <p className="text-sm opacity-70">Copy link to clipboard</p>
+            </div>
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-secondary scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
+          </button>
 
-      {/* Content tabs */}
+          {/* Save to Account */}
+              <button
+                onClick={handleSaveToMyAccount}
+                disabled={saving}
+            className="group relative flex flex-col items-center gap-4 p-6 rounded-2xl bg-primary/10 hover:bg-primary/20 transition-all duration-300"
+              >
+            <div className="w-16 h-16 flex items-center justify-center rounded-full bg-primary/20 group-hover:scale-110 transition-transform">
+                {saving ? (
+                <span className="loading loading-spinner loading-lg text-primary"></span>
+                ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
+                )}
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-1">Save to Library</h3>
+              <p className="text-sm opacity-70">Add to your collection</p>
+          </div>
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></div>
+                </button>
+              </div>
+            </div>
+
+      {/* Content tabs - Replace the existing tabs code with this */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
-        <div className="tabs tabs-boxed justify-center bg-base-200/50 p-1 rounded-box mb-6">
+        <div className="flex flex-col sm:flex-row gap-2 justify-center mb-6">
           <button 
-            className={`tab ${expandedSection === 'stats' ? 'tab-active' : ''}`}
+            className={`
+              btn btn-lg gap-2 flex-1 sm:flex-none min-w-[200px] relative
+              ${expandedSection === 'stats' 
+                ? 'btn-primary' 
+                : 'btn-ghost hover:bg-primary/10'
+              }
+            `}
             onClick={() => setExpandedSection('stats')}
           >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
             Player Stats
           </button>
+
           <button 
-            className={`tab ${expandedSection === 'fullStats' ? 'tab-active' : ''}`}
+            className={`
+              btn btn-lg gap-2 flex-1 sm:flex-none min-w-[200px]
+              ${expandedSection === 'fullStats' 
+                ? 'btn-secondary' 
+                : 'btn-ghost hover:bg-secondary/10'
+              }
+            `}
             onClick={() => setExpandedSection('fullStats')}
           >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
             Full Game Stats
           </button>
+
           <button 
-            className={`tab ${expandedSection === 'timeline' ? 'tab-active' : ''}`}
+            className={`
+              btn btn-lg gap-2 flex-1 sm:flex-none min-w-[200px]
+              ${expandedSection === 'timeline' 
+                ? 'btn-accent' 
+                : 'btn-ghost hover:bg-accent/10'
+              }
+            `}
             onClick={() => setExpandedSection('timeline')}
           >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
             Game Timeline
           </button>
         </div>
@@ -1371,18 +901,51 @@ const Shotify = ({ setCurrentPage, sharedGame = null }) => {
                           return (
                         <div 
                           key={player}
-                          className={`bg-base-200/50 p-4 rounded-xl cursor-pointer hover:bg-base-200 transition-colors ${selectedPlayer === player ? 'ring-2 ring-primary' : ''}`}
+                          className={`relative bg-base-200/50 p-4 rounded-xl cursor-pointer hover:bg-base-200 transition-all ${
+                            selectedPlayer === player ? 'ring-2 ring-primary shadow-lg scale-[1.02]' : ''
+                          }`}
                                   onClick={() => setSelectedPlayer(selectedPlayer === player ? null : player)}
                                 >
-                          <div className="font-medium mb-2 h-6 flex items-center">{player}</div>
-                          <div className="grid grid-cols-3 gap-2">
+                          <div className="flex items-center gap-3 mb-3">
+                            {/* Player Avatar */}
+                            <div className="avatar placeholder">
+                              <div className="bg-neutral text-neutral-content rounded-full w-12 h-12">
+                                <span className="text-xl">{player.split(' ').map(n => n[0]).join('')}</span>
+                              </div>
+                            </div>
+                            <div>
+                              <div className="font-medium text-lg">{player}</div>
+                              <div className="text-xs opacity-70">
+                                {game.teams.team1.name}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Quick Stats */}
+                          <div className="grid grid-cols-3 gap-2 mt-2">
                             {statsList.map((stat, index) => (
-                              <div key={index} className="text-center">
-                                <div className="text-xs opacity-60">{stat.name}</div>
-                                <div className="font-bold">{stat.value}</div>
+                              <div 
+                                key={index} 
+                                className={`text-center p-2 rounded-lg ${
+                                  selectedPlayer === player ? 'bg-base-300/50' : 'bg-base-300/30'
+                                }`}
+                              >
+                                <div className="text-lg font-bold">{stat.value}</div>
+                                <div className="text-xs opacity-70">{stat.name}</div>
                               </div>
                             ))}
                           </div>
+
+                          {/* Selection Indicator */}
+                          {selectedPlayer === player && (
+                            <div className="absolute -top-1 -right-1">
+                              <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-primary-content">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            </div>
+                          )}
                         </div>
                           );
                         })}
@@ -1412,18 +975,51 @@ const Shotify = ({ setCurrentPage, sharedGame = null }) => {
                           return (
                         <div 
                           key={player}
-                          className={`bg-base-200/50 p-4 rounded-xl cursor-pointer hover:bg-base-200 transition-colors ${selectedPlayer === player ? 'ring-2 ring-secondary' : ''}`}
+                          className={`relative bg-base-200/50 p-4 rounded-xl cursor-pointer hover:bg-base-200 transition-all ${
+                            selectedPlayer === player ? 'ring-2 ring-secondary shadow-lg scale-[1.02]' : ''
+                          }`}
                                   onClick={() => setSelectedPlayer(selectedPlayer === player ? null : player)}
                                 >
-                          <div className="font-medium mb-2 h-6 flex items-center">{player}</div>
-                          <div className="grid grid-cols-3 gap-2">
+                          <div className="flex items-center gap-3 mb-3">
+                            {/* Player Avatar */}
+                            <div className="avatar placeholder">
+                              <div className="bg-neutral text-neutral-content rounded-full w-12 h-12">
+                                <span className="text-xl">{player.split(' ').map(n => n[0]).join('')}</span>
+                              </div>
+                            </div>
+                            <div>
+                              <div className="font-medium text-lg">{player}</div>
+                              <div className="text-xs opacity-70">
+                                {game.teams.team2.name}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Quick Stats */}
+                          <div className="grid grid-cols-3 gap-2 mt-2">
                             {statsList.map((stat, index) => (
-                              <div key={index} className="text-center">
-                                <div className="text-xs opacity-60">{stat.name}</div>
-                                <div className="font-bold">{stat.value}</div>
+                              <div 
+                                key={index} 
+                                className={`text-center p-2 rounded-lg ${
+                                  selectedPlayer === player ? 'bg-base-300/50' : 'bg-base-300/30'
+                                }`}
+                              >
+                                <div className="text-lg font-bold">{stat.value}</div>
+                                <div className="text-xs opacity-70">{stat.name}</div>
                               </div>
                             ))}
                           </div>
+
+                          {/* Selection Indicator */}
+                          {selectedPlayer === player && (
+                            <div className="absolute -top-1 -right-1">
+                              <div className="w-6 h-6 bg-secondary rounded-full flex items-center justify-center text-secondary-content">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            </div>
+                          )}
                         </div>
                           );
                         })}
