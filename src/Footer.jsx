@@ -135,7 +135,7 @@ const Footer = () => {
                 </svg>
                 </a>
                 
-                <a href="https://www.linkedin.com/in/ronney221" 
+                <a href="https://www.linkedin.com/in/ronneydo" 
                   className="btn btn-circle btn-sm btn-ghost hover:bg-primary/10 transition-all hover:scale-110 hover:shadow-md" 
                   target="_blank" 
                   rel="noopener noreferrer"

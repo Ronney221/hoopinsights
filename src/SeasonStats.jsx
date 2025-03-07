@@ -1,8 +1,48 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNotification } from './contexts/NotificationContext';
 import { useAuth } from './contexts/AuthContext';
 import { formatDate } from './utils/dateUtils';
 import { SEASON_ENDPOINTS, STATS_V2_ENDPOINTS, createApiHeaders } from './config/apiConfig';
+import {
+  ChartBarIcon,
+  ChartPieIcon,
+  ClockIcon,
+  FireIcon,
+  TrophyIcon,
+  UserGroupIcon,
+  ArrowTrendingUpIcon,
+  ArrowPathIcon,
+  PlusIcon,
+  CalendarIcon,
+  AdjustmentsHorizontalIcon,
+  ChevronRightIcon,
+  ChevronDownIcon,
+  XMarkIcon,
+  CheckIcon,
+  PencilIcon,
+  TrashIcon,
+  FolderIcon,
+} from '@heroicons/react/24/outline';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  Legend,
+} from 'recharts';
 
 const SeasonStats = ({ setCurrentPage }) => {
   const { currentUser } = useAuth();
@@ -744,549 +784,474 @@ const SeasonStats = ({ setCurrentPage }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-base-200 to-base-100 pt-36">
-      {/* Header with Season Selection */}
-      <section className="py-12 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-base-100 via-base-200 to-base-300 pt-28">
+      {/* Hero Section */}
+      <motion.section 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="py-12 relative overflow-hidden"
+      >
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5"></div>
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-pulse delay-700"></div>
         
-        <div className="max-w-7xl mx-auto px-6 relative">
-          <div className="text-center mb-12">
-            <div className="inline-block px-4 py-2 bg-primary/10 rounded-full text-primary font-medium mb-6 transform hover:scale-105 transition-transform">
-              YOUR SEASONS
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="text-center">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="inline-block"
+            >
+              <div className="inline-flex items-center px-4 py-2 bg-primary/10 rounded-full text-primary font-medium mb-6">
+                <CalendarIcon className="w-5 h-5 mr-2" />
+                Season Management
         </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Season Management</h2>
-            <p className="text-xl opacity-80 max-w-2xl mx-auto mb-8">
-              Select or create a season to track your basketball statistics and progress.
-            </p>
-                </div>
-
-                {seasons.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="opacity-60 mb-4">No seasons yet</p>
-                    <button 
-                className="btn btn-primary"
-                      onClick={goToSavedGames}
-                    >
-                      Create Your First Season
-                    </button>
+            </motion.div>
+            
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-4xl md:text-5xl font-bold mb-6"
+            >
+              Your Basketball Journey
+            </motion.h1>
+            
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-xl opacity-80 max-w-2xl mx-auto mb-12"
+            >
+              Track your progress, analyze performance, and celebrate your achievements throughout the season.
+            </motion.p>
                   </div>
-                ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {seasons.map(season => (
-                      <button 
+
+          {/* Season Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            {seasons.map((season, index) => (
+              <motion.div
                         key={season._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + index * 0.1 }}
+                whileHover={{ scale: 1.02 }}
+                className="relative group"
+              >
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-secondary rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
+                <button
                         onClick={() => setSelectedSeasonId(season._id)}
-                        className={`relative group transform hover:scale-[1.02] transition-all duration-300 focus:outline-none focus-visible:outline-none active:outline-none ${
+                  className={`relative w-full p-6 rounded-xl bg-base-100/50 backdrop-blur-sm border border-base-content/5 shadow-lg transition-all duration-300 ${
                           selectedSeasonId === season._id ? 'ring-2 ring-primary' : ''
                         }`}
-                        style={{ WebkitTapHighlightColor: 'transparent' }}
-                      >
-                        <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-secondary rounded-lg blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
-                        <div 
-                          className={`relative w-full p-6 bg-base-100/50 backdrop-blur-sm rounded-lg cursor-pointer text-left ${
-                            selectedSeasonId === season._id ? 'bg-primary/10' : ''
-                          }`}
-                        >
-                          <div className="flex justify-between items-start">
+                >
+                  <div className="flex items-start justify-between mb-4">
                             <div>
                               <h3 className="text-lg font-bold mb-2">{season.name}</h3>
-                              <p className="text-sm opacity-70">
-                                {season.gameIds ? season.gameIds.length : 0} game{season.gameIds && season.gameIds.length !== 1 ? 's' : ''}
-                              </p>
+                      <div className="flex items-center gap-2 text-sm opacity-70">
+                        <CalendarIcon className="w-4 h-4" />
+                        <span>{formatDate(season.createdAt)}</span>
                             </div>
+                    </div>
+                    <div className="flex gap-2">
                             <button 
-                              className="btn btn-ghost btn-sm btn-circle focus:outline-none"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                deleteSeason(season._id);
+                          startEditingName(season);
                               }}
-                              title="Delete season"
+                        className="btn btn-ghost btn-sm btn-circle"
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                              </svg>
+                        <PencilIcon className="w-4 h-4" />
                             </button>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-
-              {/* Add Season Button */}
-              <div className="relative group transform hover:scale-[1.02] transition-all duration-300">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-secondary rounded-lg blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
                 <button 
-                  onClick={goToSavedGames}
-                  className="relative w-full h-full p-6 bg-base-100/50 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center gap-2"
-                >
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                  </div>
-                  <span className="font-medium">Add Season</span>
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteSeason(season._id);
+                        }}
+                        className="btn btn-ghost btn-sm btn-circle text-error"
+                      >
+                        <TrashIcon className="w-4 h-4" />
                 </button>
               </div>
             </div>
-          )}
-          </div>
-      </section>
-
-      {/* Season Stats Section */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5"></div>
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-pulse delay-700"></div>
-        
-        {/* Basketball Pattern Overlay */}
-        <div className="absolute inset-0 opacity-[0.02]" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 30c15.71 0 28.45-12.74 28.45-28.45h3C61.45 17.45 47.45 31.45 30 31.45S-1.45 17.45-1.45 1.55h3C1.55 17.26 14.29 30 30 30z' fill='%23ff6b00' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E")`,
-          backgroundSize: '60px 60px'
-        }}/>
-        
-        <div className="max-w-7xl mx-auto px-6 relative">
-          <div className="text-center mb-16">
-            <div className="inline-block px-4 py-2 bg-primary/10 rounded-full text-primary font-medium mb-6 transform hover:scale-105 transition-transform">
-              SEASON TRACKING
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Season Statistics</h2>
-            <p className="text-xl opacity-80 max-w-2xl mx-auto mb-12 leading-relaxed">
-              Track your progress throughout the season with comprehensive statistics and advanced analytics.
-            </p>
-          </div>
-
-          {selectedSeason && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-              {/* Season Overview */}
-              <div className="relative group">
-                <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                <div className="relative bg-base-100 rounded-2xl shadow-2xl p-6 transform hover:scale-[1.02] transition-transform">
-                  <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                    Season Overview
-                    <div className="badge badge-primary">{selectedSeason.name}</div>
-                  </h3>
                   
-                  {/* Progress Bar */}
-                  <div className="mb-8">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium">Season Progress</span>
-                    <div className="flex items-center gap-2">
-                        <span className="text-primary font-bold">{seasonGames.length}</span>
-                        <span className="text-sm opacity-60">Games</span>
-                      </div>
-                    </div>
-                    <div className="h-3 bg-base-200 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-primary to-secondary rounded-full transition-all duration-1000"
-                        style={{ width: `${(seasonGames.length / (selectedSeason?.targetGames || 82)) * 100}%` }}
-                      >
-                        <div className="w-full h-full opacity-75 bg-[length:10px_10px] bg-[linear-gradient(45deg,rgba(0,0,0,.2)25%,transparent_25%,transparent_50%,rgba(0,0,0,.2)50%,rgba(0,0,0,.2)75%,transparent_75%,transparent)] animate-[progress-bar-stripes_1s_linear_infinite]"></div>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="bg-base-200/50 rounded-lg p-3">
+                      <div className="text-sm opacity-70 mb-1">Games</div>
+                      <div className="text-2xl font-bold">{season.gameIds?.length || 0}</div>
+            </div>
+                    <div className="bg-base-200/50 rounded-lg p-3">
+                      <div className="text-sm opacity-70 mb-1">Win Rate</div>
+                      <div className="text-2xl font-bold">
+                        {(() => {
+                          const record = getSeasonRecord(seasonGames.filter(game => 
+                            season.gameIds?.includes(game.videoId)
+                          ));
+                          return `${((record.wins / (record.wins + record.losses)) * 100 || 0).toFixed(0)}%`;
+                        })()}
                     </div>
                     </div>
                   </div>
 
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    {statsGridItems.map((stat, index) => (
-                      <div key={index} className="group/stat bg-base-200/50 p-4 rounded-xl hover:bg-base-200 transition-colors">
-                        <div className="flex items-center gap-2 mb-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={stat.icon} />
-                          </svg>
-                          <div className="text-sm opacity-60">{stat.label}</div>
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 opacity-70">
+                      <FireIcon className="w-4 h-4" />
+                      <span>
+                        {(() => {
+                          const streaks = getStreaks(seasonGames.filter(game => 
+                            season.gameIds?.includes(game.videoId)
+                          ));
+                          return `${streaks.currentStreak}${streaks.currentStreakType} Streak`;
+                        })()}
+                      </span>
                   </div>
-                        <div className="text-xl font-bold">{stat.value}</div>
+                    <ChevronRightIcon className="w-5 h-5 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
-                    ))}
-                </div>
-                
-                  {/* Recent Games Preview */}
-                  <div className="mt-8">
-                    <h4 className="font-bold mb-4 flex items-center justify-between">
-                      <span>Recent Games</span>
-                      <button className="btn btn-ghost btn-sm">View All</button>
-                    </h4>
-                    <div className="space-y-3">
-                      {seasonGames.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 3).map((game, index) => {
-                        const team1Stats = getTeamStats(game, 'team1');
-                        const team2Stats = getTeamStats(game, 'team2');
-                        const score = `${team1Stats.points}-${team2Stats.points}`;
-                        const isWin = team1Stats.points > team2Stats.points;
-                        
-                        return (
-                          <div key={index} className="flex items-center justify-between p-3 bg-base-200/50 rounded-lg hover:bg-base-200 transition-colors cursor-pointer group/game">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                isWin ? 'bg-success/10 text-success' : 'bg-error/10 text-error'
-                              }`}>
-                                {isWin ? 'W' : 'L'}
+                </button>
+              </motion.div>
+            ))}
+
+            {/* Add Season Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 + seasons.length * 0.1 }}
+              whileHover={{ scale: 1.02 }}
+              className="relative group"
+            >
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-secondary rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
+              <button
+                onClick={goToSavedGames}
+                className="relative w-full h-full p-6 rounded-xl bg-base-100/50 backdrop-blur-sm border border-base-content/5 shadow-lg transition-all duration-300 flex flex-col items-center justify-center gap-4"
+              >
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <PlusIcon className="w-6 h-6 text-primary" />
                               </div>
-                              <div>
-                                <div className="font-medium">{game.title}</div>
-                                <div className="text-xs opacity-60">{new Date(game.createdAt).toLocaleDateString()}</div>
+                <span className="font-medium">Create New Season</span>
+              </button>
+            </motion.div>
                               </div>
                             </div>
+      </motion.section>
+
+      {/* Selected Season Stats */}
+      <AnimatePresence mode="wait">
+        {selectedSeason && (
+          <motion.section
+            key={selectedSeason._id}
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            className="py-24 relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-primary/5"></div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+              {/* Season Header */}
+              <div className="mb-12">
+                <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-4">
-                              <span className="font-medium">{score}</span>
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 opacity-0 group-hover/game:opacity-60 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                              </svg>
+                    {isEditingName ? (
+                      <div className="join">
+                        <input
+                          type="text"
+                          value={newSeasonName}
+                          onChange={(e) => setNewSeasonName(e.target.value)}
+                          className="input input-bordered join-item w-64"
+                          placeholder="Enter season name"
+                        />
+                        <button
+                          onClick={saveSeasonName}
+                          className="btn btn-primary join-item"
+                        >
+                          <CheckIcon className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => setIsEditingName(false)}
+                          className="btn btn-ghost join-item"
+                        >
+                          <XMarkIcon className="w-5 h-5" />
+                        </button>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
+                    ) : (
+                      <motion.h2 
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="text-3xl font-bold flex items-center gap-3"
+                      >
+                        {selectedSeason.name}
+                        <button
+                          onClick={startEditingName}
+                          className="btn btn-ghost btn-sm btn-circle"
+                        >
+                          <PencilIcon className="w-4 h-4" />
+                        </button>
+                      </motion.h2>
+                    )}
               </div>
 
-              {/* Performance Trends */}
-              <div className="relative group">
-                <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                <div className="relative bg-base-100 rounded-2xl shadow-2xl p-6 transform hover:scale-[1.02] transition-transform">
-                  <h3 className="text-2xl font-bold mb-6 flex items-center justify-between">
-                    <span>Performance Trends</span>
-                <div className="flex gap-2">
+                  <div className="flex items-center gap-4">
+                    <div className="join">
                     <button 
-                        className={`btn btn-sm ${timeframe === 'week' ? 'btn-primary' : 'btn-ghost'}`}
+                        className={`btn join-item ${timeframe === 'week' ? 'btn-primary' : 'btn-ghost'}`}
                         onClick={() => setTimeframe('week')}
                     >
                         Week
                     </button>
                   <button 
-                        className={`btn btn-sm ${timeframe === 'month' ? 'btn-primary' : 'btn-ghost'}`}
+                        className={`btn join-item ${timeframe === 'month' ? 'btn-primary' : 'btn-ghost'}`}
                         onClick={() => setTimeframe('month')}
                       >
                         Month
                       </button>
                       <button 
-                        className={`btn btn-sm ${timeframe === 'season' ? 'btn-primary' : 'btn-ghost'}`}
+                        className={`btn join-item ${timeframe === 'season' ? 'btn-primary' : 'btn-ghost'}`}
                         onClick={() => setTimeframe('season')}
                       >
                         Season
                   </button>
                 </div>
-                  </h3>
-              
-                  {/* Points Trend */}
-                  <div className="bg-base-200/50 p-4 rounded-xl mb-6">
-              <div className="flex justify-between items-center mb-4">
-                      <div>
-                        <div className="font-medium">Points Per Game</div>
-                        <div className="text-2xl font-bold text-primary">
-                          {(getFilteredGames().reduce((total, game) => {
-                            const team1Stats = getTeamStats(game, 'team1');
-                            return total + team1Stats.points;
-                          }, 0) / getFilteredGames().length || 0).toFixed(1)}
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <div className="text-xs opacity-60">Last {getFilteredGames().length} games</div>
-                        <div className="text-sm">
-                          High: {Math.max(...getFilteredGames().map(game => {
-                            const team1Stats = getTeamStats(game, 'team1');
-                            return team1Stats.points;
-                          }) || [0])}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="h-32 flex items-end gap-1">
-                      {getFilteredGames().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)).map((game, index) => {
-                        const team1Stats = getTeamStats(game, 'team1');
-                        const points = team1Stats.points;
-                        const maxPoints = Math.max(...getFilteredGames().map(g => {
-                          const stats = getTeamStats(g, 'team1');
-                          return stats.points;
-                        }));
-                        const height = maxPoints > 0 ? (points / maxPoints) * 100 : 0;
-                        const isWin = team1Stats.points > getTeamStats(game, 'team2').points;
-                        
-                        return (
-                          <div key={index} className="relative flex-1 group/bar">
-                            <div
-                              className={`rounded-t transition-all duration-500 ${
-                                isWin ? 'bg-success/20 hover:bg-success' : 'bg-error/20 hover:bg-error'
-                              }`}
-                              style={{ height: `${height}%` }}
-                            ></div>
-                            {/* Tooltip */}
-                            <div className="absolute opacity-0 group-hover/bar:opacity-100 transition-opacity bg-base-300 text-xs p-2 rounded-lg -top-8 left-1/2 -translate-x-1/2 pointer-events-none whitespace-nowrap">
-                              {game.title}: {points} points
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="flex justify-between text-xs opacity-60 mt-2">
-                      <span>First Game</span>
-                      <span>Latest</span>
-                    </div>
-                  </div>
 
-                  {/* Advanced Stats */}
-                  <div className="mb-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-bold">Advanced Stats</h4>
                   <button 
-                        className="btn btn-ghost btn-xs"
                         onClick={() => setShowAdvancedStats(!showAdvancedStats)}
+                      className="btn btn-ghost gap-2"
                       >
-                        {showAdvancedStats ? 'Hide Details' : 'Show Details'}
+                      <AdjustmentsHorizontalIcon className="w-5 h-5" />
+                      {showAdvancedStats ? 'Basic Stats' : 'Advanced Stats'}
                   </button>
-                </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      {advancedStatsItems.map((stat, index) => (
-                        <div key={index} className="bg-base-200/50 p-4 rounded-xl">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium">{stat.label}</span>
-                            <span className="text-xl font-bold">{stat.value}</span>
-                          </div>
-                          {showAdvancedStats && (
-                            <p className="text-xs opacity-60">{stat.description}</p>
-                          )}
-                        </div>
-                      ))}
                     </div>
               </div>
               
-                  {/* Shooting Stats */}
-                  <div className="space-y-4">
-                    {[
-                      { 
-                        label: 'Field Goals',
-                        getMade: (game) => getTeamStats(game, 'team1').fgMade,
-                        getAttempts: (game) => getTeamStats(game, 'team1').fgAttempts,
-                        color: 'primary'
-                      },
-                      { 
-                        label: '3-Pointers',
-                        getMade: (game) => getTeamStats(game, 'team1').threePtMade,
-                        getAttempts: (game) => getTeamStats(game, 'team1').threePtAttempts,
-                        color: 'secondary'
-                      },
-                      { 
-                        label: 'Free Throws',
-                        getMade: (game) => getTeamStats(game, 'team1').ftMade,
-                        getAttempts: (game) => getTeamStats(game, 'team1').ftAttempts,
-                        color: 'accent'
-                      }
-                    ].map((stat, index) => {
-                      const filteredGames = getFilteredGames().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-                      const made = filteredGames.reduce((sum, game) => sum + stat.getMade(game), 0);
-                      const attempts = filteredGames.reduce((sum, game) => sum + stat.getAttempts(game), 0);
-                      const percentage = ((made / attempts) * 100 || 0).toFixed(1);
-                      
-                      const lastGame = filteredGames[filteredGames.length - 1];
-                      const lastGameMade = lastGame ? stat.getMade(lastGame) : 0;
-                      const lastGameAttempts = lastGame ? stat.getAttempts(lastGame) : 0;
-                      const lastGamePercentage = ((lastGameMade / lastGameAttempts) * 100 || 0).toFixed(1);
-                      
-                      return (
-                        <div key={index} className="bg-base-200/50 p-4 rounded-xl group/stat hover:bg-base-200 transition-colors">
-                          <div className="flex justify-between text-sm mb-2">
-                            <span>{stat.label}</span>
-                            <div className="flex items-center gap-2">
-                              <span className={`text-${stat.color}`}>{percentage}%</span>
-                              <span className={`text-xs ${Number(lastGamePercentage) > Number(percentage) ? 'text-success' : 'text-error'}`}>
-                                ({lastGamePercentage}% last game)
-                              </span>
+                {/* Quick Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  {statsGridItems.map((stat, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="relative group"
+                    >
+                      <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-secondary rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
+                      <div className="relative bg-base-100/50 backdrop-blur-sm rounded-xl p-6 border border-base-content/5">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={stat.icon} />
+                            </svg>
                   </div>
+                          <div className="text-sm opacity-70">{stat.label}</div>
                           </div>
-                          <div className="h-2 bg-base-300 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full bg-${stat.color} rounded-full transition-all duration-1000`}
-                              style={{ width: `${percentage}%` }}
-                            >
-                              <div className="w-full h-full opacity-75 bg-[length:10px_10px] bg-[linear-gradient(45deg,rgba(0,0,0,.2)25%,transparent_25%,transparent_50%,rgba(0,0,0,.2)50%,rgba(0,0,0,.2)75%,transparent_75%,transparent)] animate-[progress-bar-stripes_1s_linear_infinite]"></div>
-                  </div>
-                          </div>
+                        <div className="text-3xl font-bold">{stat.value}</div>
                         </div>
-                      );
-                    })}
+                    </motion.div>
+                  ))}
                   </div>
                 </div>
+
+              {/* Performance Charts */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+                {/* Points Trend Chart */}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="card bg-base-100 shadow-xl"
+                >
+                  <div className="card-body">
+                    <h3 className="card-title mb-6">Points Per Game Trend</h3>
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={getFilteredGames().map(game => ({
+                            name: game.title,
+                            points: getTeamStats(game, 'team1').points,
+                            date: new Date(game.createdAt).toLocaleDateString()
+                          }))}
+                          margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                        >
+                          <defs>
+                            <linearGradient id="pointsGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(var(--p))" stopOpacity={0.8}/>
+                              <stop offset="95%" stopColor="hsl(var(--p))" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <XAxis dataKey="date" />
+                          <YAxis />
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <Tooltip />
+                          <Area
+                            type="monotone"
+                            dataKey="points"
+                            stroke="hsl(var(--p))"
+                            fillOpacity={1}
+                            fill="url(#pointsGradient)"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
               </div>
             </div>
-          )}
-        </div>
-      </section>
+                </motion.div>
 
-      {/* Team Total Stats */}
-      {selectedSeason && (
-        <section className="py-24 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-primary/5"></div>
-          <div className="max-w-7xl mx-auto px-6 relative">
-            <h2 className="text-3xl font-bold mb-12 text-center">Team Statistics</h2>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
-              {/* Team Totals */}
-              <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-200">
+                {/* Shooting Percentages Chart */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="card bg-base-100 shadow-xl"
+                >
                 <div className="card-body">
-                  <h3 className="text-xl font-bold mb-6">Season Totals</h3>
-                  <div className="overflow-x-auto">
-                    <table className="table w-full">
-                    <thead>
-                        <tr>
-                          <th>Stat</th>
-                          <th>Total</th>
-                          <th>Per Game</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {[
-                          { label: 'Points', getValue: (game) => getTeamStats(game, 'team1').points },
-                          { label: 'Rebounds', getValue: (game) => getTeamStats(game, 'team1').rebounds },
-                          { label: 'Assists', getValue: (game) => getTeamStats(game, 'team1').assists },
-                          { label: 'Steals', getValue: (game) => getTeamStats(game, 'team1').steals },
-                          { label: 'Blocks', getValue: (game) => getTeamStats(game, 'team1').blocks },
-                          { label: 'Turnovers', getValue: (game) => getTeamStats(game, 'team1').turnovers }
-                        ].map(stat => {
-                          const total = seasonGames.reduce((sum, game) => sum + stat.getValue(game), 0);
-                          const perGame = (total / seasonGames.length).toFixed(1);
-                          return (
-                            <tr key={stat.label}>
-                              <td>{stat.label}</td>
-                              <td className="font-medium">{total}</td>
-                              <td>{perGame}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                    <h3 className="card-title mb-6">Shooting Percentages</h3>
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart
+                          data={[{
+                            subject: 'FG%',
+                            A: (seasonGames.reduce((total, game) => {
+                              const stats = getTeamStats(game, 'team1');
+                              return total + (stats.fgMade / stats.fgAttempts || 0);
+                            }, 0) / seasonGames.length * 100).toFixed(1),
+                            fullMark: 100,
+                          }, {
+                            subject: '3P%',
+                            A: (seasonGames.reduce((total, game) => {
+                              const stats = getTeamStats(game, 'team1');
+                              return total + (stats.threePtMade / stats.threePtAttempts || 0);
+                            }, 0) / seasonGames.length * 100).toFixed(1),
+                            fullMark: 100,
+                          }, {
+                            subject: 'FT%',
+                            A: (seasonGames.reduce((total, game) => {
+                              const stats = getTeamStats(game, 'team1');
+                              return total + (stats.ftMade / stats.ftAttempts || 0);
+                            }, 0) / seasonGames.length * 100).toFixed(1),
+                            fullMark: 100,
+                          }]}
+                        >
+                          <PolarGrid />
+                          <PolarAngleAxis dataKey="subject" />
+                          <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                          <Radar
+                            name="Team"
+                            dataKey="A"
+                            stroke="hsl(var(--p))"
+                            fill="hsl(var(--p))"
+                            fillOpacity={0.6}
+                          />
+                        </RadarChart>
+                      </ResponsiveContainer>
                   </div>
                 </div>
+                </motion.div>
               </div>
 
-              {/* Shooting Splits */}
-              <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-200">
+              {/* Advanced Stats Section */}
+              <AnimatePresence>
+                {showAdvancedStats && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mb-12"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {advancedStatsItems.map((stat, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className="card bg-base-100 shadow-xl"
+                        >
                 <div className="card-body">
-                  <h3 className="text-xl font-bold mb-6">Shooting Splits</h3>
-                  <div className="overflow-x-auto">
-                    <table className="table w-full">
-                      <thead>
-                        <tr>
-                          <th>Shot Type</th>
-                          <th>Made</th>
-                          <th>Attempts</th>
-                          <th>Percentage</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[
-                          { 
-                            label: 'Field Goals',
-                            getMade: (game) => getTeamStats(game, 'team1').fgMade,
-                            getAttempts: (game) => getTeamStats(game, 'team1').fgAttempts
-                          },
-                          { 
-                            label: '3-Pointers',
-                            getMade: (game) => getTeamStats(game, 'team1').threePtMade,
-                            getAttempts: (game) => getTeamStats(game, 'team1').threePtAttempts
-                          },
-                          { 
-                            label: 'Free Throws',
-                            getMade: (game) => getTeamStats(game, 'team1').ftMade,
-                            getAttempts: (game) => getTeamStats(game, 'team1').ftAttempts
-                          }
-                        ].map(shot => {
-                          const made = seasonGames.reduce((sum, game) => sum + shot.getMade(game), 0);
-                          const attempts = seasonGames.reduce((sum, game) => sum + shot.getAttempts(game), 0);
-                          const percentage = ((made / attempts) * 100 || 0).toFixed(1);
-                          return (
-                            <tr key={shot.label}>
-                              <td>{shot.label}</td>
-                              <td>{made}</td>
-                              <td>{attempts}</td>
-                              <td className={
-                                percentage >= 50 ? 'text-success' :
-                                percentage <= 30 ? 'text-error' :
-                                ''
-                              }>{percentage}%</td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </table>
+                            <h3 className="text-lg font-bold mb-2">{stat.label}</h3>
+                            <div className="text-3xl font-bold text-primary mb-2">
+                              {stat.value}
                   </div>
+                            <p className="text-sm opacity-70">{stat.description}</p>
                 </div>
+                        </motion.div>
+                      ))}
               </div>
-              </div>
-              
-            {/* Full Team Stats Table */}
-            <div className="card bg-base-100 shadow-xl overflow-hidden border border-base-200">
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Player Stats Table */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="card bg-base-100 shadow-xl overflow-hidden"
+              >
               <div className="card-body">
-                <h3 className="text-xl font-bold mb-6">Full Team Statistics</h3>
+                  <h3 className="card-title mb-6">Player Statistics</h3>
                 <div className="overflow-x-auto">
                   <table className="table w-full">
                     <thead>
                       <tr>
                         <th>Player</th>
+                          <th>Team</th>
                         <th>GP</th>
                         <th>PPG</th>
                         <th>RPG</th>
                         <th>APG</th>
                         <th>SPG</th>
                         <th>BPG</th>
-                        <th>FG</th>
                         <th>FG%</th>
-                        <th>3P</th>
                         <th>3P%</th>
-                        <th>FT</th>
                         <th>FT%</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {getAllPlayers().map(player => {
+                        {getAllPlayers().map((player, index) => {
                         const stats = getPlayerSeasonStats(player.combinedName);
                         if (!stats) return null;
                         
                         return (
-                          <tr key={player.combinedName} className="hover:bg-base-200/50">
+                            <motion.tr
+                              key={player.combinedName}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                              className="hover:bg-base-200/50 transition-colors"
+                            >
                             <td className="font-medium">{stats.name}</td>
+                              <td>{stats.team === 'team1' ? seasonGames[0]?.teams?.team1?.name || 'Team 1' : seasonGames[0]?.teams?.team2?.name || 'Team 2'}</td>
                             <td>{stats.gamesPlayed}</td>
                             <td className="font-medium">{stats.ppg}</td>
                             <td>{stats.rpg}</td>
                             <td>{stats.apg}</td>
                             <td>{stats.spg}</td>
                             <td>{stats.bpg}</td>
-                            <td>{`${stats.fgMade}/${stats.fgAttempts}`}</td>
                             <td className={stats.fgPercentage >= 50 ? 'text-success' : stats.fgPercentage <= 30 ? 'text-error' : ''}>
                               {stats.fgPercentage}%
                             </td>
-                            <td>{`${stats.threePtMade}/${stats.threePtAttempts}`}</td>
                             <td className={stats.threePtPercentage >= 40 ? 'text-success' : stats.threePtPercentage <= 25 ? 'text-error' : ''}>
                               {stats.threePtPercentage}%
                             </td>
-                            <td>{`${stats.ftMade}/${stats.ftAttempts}`}</td>
                             <td className={stats.ftPercentage >= 75 ? 'text-success' : stats.ftPercentage <= 50 ? 'text-error' : ''}>
                               {stats.ftPercentage}%
                             </td>
-                          </tr>
+                            </motion.tr>
                         );
                       })}
                     </tbody>
                   </table>
                         </div>
                       </div>
+              </motion.div>
                   </div>
-                </div>
-        </section>
+          </motion.section>
               )}
+      </AnimatePresence>
             
          {/* Navigation buttons */}
          <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
             <div className="bg-base-100/80 backdrop-blur-lg rounded-2xl shadow-lg border border-base-content/5 p-2 flex gap-2">
-             
-
               <button
                 onClick={() => setCurrentPage('saved-games')}
                 className="btn btn-ghost hover:bg-secondary/10 px-6 gap-2 transition-all duration-300 group relative overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-secondary/20 to-primary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-secondary transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
+            <FolderIcon className="h-5 w-5 text-secondary transition-transform duration-300 group-hover:translate-x-1" />
                 <span className="font-medium">Saved Games</span>
               </button>
             </div>
