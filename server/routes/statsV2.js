@@ -508,8 +508,6 @@ router.post('/saveSharedGame/:shareId', authenticateUser, async (req, res) => {
     const { shareId } = req.params;
     const startTime = Date.now();
     
-    console.log(`[${req.user.uid}] Starting saveSharedGame request for shareId: ${shareId}`);
-    
     // Find the shared video
     const sharedVideo = await VideoNew.findOne({ 
       shareId,
@@ -517,16 +515,9 @@ router.post('/saveSharedGame/:shareId', authenticateUser, async (req, res) => {
     }).lean();
     
     if (!sharedVideo) {
-      console.error(`[${req.user.uid}] Shared game not found with shareId: ${shareId}`);
+      console.error(`[${req.user.uid}] Failed to find shared game: ${shareId}`);
       return res.status(404).json({ error: 'Shared game not found' });
     }
-    
-    console.log(`[${req.user.uid}] Found shared video:`, {
-      originalYoutubeId: sharedVideo.originalYoutubeId,
-      title: sharedVideo.title,
-      createdBy: sharedVideo.createdBy,
-      internalId: sharedVideo.internalId
-    });
     
     // Check if the user already has this game
     const existingVideo = await VideoNew.findOne({
@@ -535,10 +526,6 @@ router.post('/saveSharedGame/:shareId', authenticateUser, async (req, res) => {
     });
     
     if (existingVideo) {
-      console.log(`[${req.user.uid}] User already has this game saved:`, {
-        videoId: existingVideo.originalYoutubeId,
-        title: existingVideo.title
-      });
       return res.status(409).json({ 
         error: 'You already have this game saved',
         videoId: existingVideo.originalYoutubeId
@@ -550,8 +537,6 @@ router.post('/saveSharedGame/:shareId', authenticateUser, async (req, res) => {
       videoId: sharedVideo.internalId,
       createdBy: sharedVideo.createdBy
     }).lean();
-    
-    console.log(`[${req.user.uid}] Found ${sharedStats.length} stats to copy`);
     
     // Create a new video for the current user with all required fields
     const userSpecificYoutubeId = `${sharedVideo.originalYoutubeId}__${req.user.uid}`;
@@ -575,9 +560,8 @@ router.post('/saveSharedGame/:shareId', authenticateUser, async (req, res) => {
     
     try {
       await newVideo.save();
-      console.log(`[${req.user.uid}] Created new video with internalId: ${newVideo.internalId}`);
     } catch (saveError) {
-      console.error(`[${req.user.uid}] Error saving new video:`, saveError);
+      console.error(`[${req.user.uid}] Failed to save new video:`, saveError);
       throw new Error(`Failed to save new video: ${saveError.message}`);
     }
     
@@ -603,10 +587,9 @@ router.post('/saveSharedGame/:shareId', authenticateUser, async (req, res) => {
           const batch = statsToInsert.slice(i, i + BATCH_SIZE);
           await StatNew.insertMany(batch);
           savedCount += batch.length;
-          console.log(`[${req.user.uid}] Saved batch of ${batch.length} stats (${savedCount}/${statsToInsert.length})`);
         }
       } catch (statsError) {
-        console.error(`[${req.user.uid}] Error saving stats:`, statsError);
+        console.error(`[${req.user.uid}] Failed to save stats:`, statsError);
         // If stats fail to save, clean up the video
         await VideoNew.findByIdAndDelete(newVideo._id);
         throw new Error(`Failed to save stats: ${statsError.message}`);
@@ -614,7 +597,7 @@ router.post('/saveSharedGame/:shareId', authenticateUser, async (req, res) => {
     }
     
     const duration = Date.now() - startTime;
-    console.log(`[${req.user.uid}] Completed saving shared game to user account in ${duration}ms`);
+    console.log(`[${req.user.uid}] Successfully saved shared game in ${duration}ms`);
     
     res.status(201).json({
       message: 'Game saved successfully to your account',
